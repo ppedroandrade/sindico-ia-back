@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { Role, User } from '@prisma/client';
+import { JwtUser } from './user-request.interface';
 
 @Injectable()
 export class AuthService {
@@ -21,13 +22,11 @@ export class AuthService {
     return user;
   }
 
-  login(user: User) {
-    const payload = { email: user.email, sub: user.id, role: user.role };
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...safeUser } = user;
+  login(user: JwtUser) {
+    const payload = { email: user.email, userId: user.userId, role: user.role };
     return {
       access_token: this.jwtService.sign(payload),
-      user: safeUser,
+      user: payload,
     };
   }
 

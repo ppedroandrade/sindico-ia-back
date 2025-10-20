@@ -20,11 +20,72 @@ enum Role {
 }
 
 model User {
-  id        String   @id @default(uuid())
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  password     String
+  role         Role
+  apartment    String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @default(now()) @updatedAt
+  reservations Reservation[]
+  payments     Payment[]
+}
+
+model CommonArea {
+  id           String        @id @default(uuid())
+  name         String        @unique
+  description  String?
+  capacity     Int
+  pricePerHour Float
+  available    Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  items        AreaItem[]
+  reservations Reservation[]
+}
+
+model Reservation {
+  id           String     @id @default(uuid())
+  userId       String
+  areaId       String
+  date         DateTime
+  startTime    DateTime
+  endTime      DateTime
+  totalPrice   Float
+  status       String     @default("pending")
+  observations String?
+  createdAt    DateTime   @default(now())
+  user         User       @relation(fields: [userId], references: [id])
+  area         CommonArea @relation(fields: [areaId], references: [id])
+}
+
+enum ReservationStatus {
+  pending
+  confirmed
+  cancelled
+  completed
+}
+
+model AreaItem {
+  id        String     @id @default(uuid())
   name      String
-  email     String   @unique
-  password  String
-  role      Role
-  apartment String?
-  createdAt DateTime @default(now())
+  quantity  Int
+  unitPrice Float
+  category  String
+  areaId    String
+  area      CommonArea @relation(fields: [areaId], references: [id])
+}
+
+model Payment {
+  id             String    @id @default(uuid())
+  userId         String
+  amount         Float
+  dueDate        DateTime
+  paidDate       DateTime?
+  status         String    @default("pending")
+  type           String // condomínio | água | gás | danos | reserva
+  referenceMonth String?
+  createdAt      DateTime  @default(now())
+  user           User      @relation(fields: [userId], references: [id])
 }
