@@ -1,6 +1,8 @@
+import { Logger } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
+const logger = new Logger();
 const prisma = new PrismaClient();
 
 async function main() {
@@ -90,6 +92,7 @@ async function main() {
 main()
   .catch((e) => {
     console.error(e);
+    logger.error('Prisma connection error', e);
     process.exit(1);
   })
   .finally(async () => {

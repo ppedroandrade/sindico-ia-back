@@ -3,7 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { CommonAreasModule } from './common-areas/common-areas.module';
 import { ReservationsModule } from './reservations/reservations.module';
-import { PrismaService } from './prisma.service';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
   imports: [
@@ -11,7 +11,7 @@ import { PrismaService } from './prisma.service';
     AuthModule,
     CommonAreasModule,
     ReservationsModule,
+    PrismaModule,
   ],
-  providers: [PrismaService],
 })
 export class AppModule {}

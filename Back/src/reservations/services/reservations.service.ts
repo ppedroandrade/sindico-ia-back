@@ -1,21 +1,21 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma.service';
-import { CreateReservationDto } from './dto/create-reservation.dto';
-import { UpdateReservationDto } from './dto/update-reservation.dto';
+import { PrismaService } from '../../prisma/prisma.service';
+import { CreateReservationDto } from '../dto/create-reservation.dto';
+import { UpdateReservationDto } from '../dto/update-reservation.dto';
 
 @Injectable()
 export class ReservationsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(data: CreateReservationDto) {
-    return this.prisma.reservation.create({
+    return await this.prisma.reservation.create({
       data,
       include: { area: true, user: true },
     });
   }
 
   async findAll() {
-    return this.prisma.reservation.findMany({
+    return await this.prisma.reservation.findMany({
       include: { user: true, area: true },
       orderBy: { createdAt: 'desc' },
     });
@@ -32,7 +32,7 @@ export class ReservationsService {
 
   async update(id: string, data: UpdateReservationDto) {
     await this.findOne(id);
-    return this.prisma.reservation.update({
+    return await this.prisma.reservation.update({
       where: { id },
       data,
     });
@@ -40,6 +40,6 @@ export class ReservationsService {
 
   async remove(id: string) {
     await this.findOne(id);
-    return this.prisma.reservation.delete({ where: { id } });
+    return await this.prisma.reservation.delete({ where: { id } });
   }
 }

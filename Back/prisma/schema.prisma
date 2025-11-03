@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,12 +5,6 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-}
-
-enum Role {
-  admin
-  morador
-  limpeza
 }
 
 model User {
@@ -28,8 +16,8 @@ model User {
   apartment    String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @default(now()) @updatedAt
-  reservations Reservation[]
   payments     Payment[]
+  reservations Reservation[]
 }
 
 model CommonArea {
@@ -56,15 +44,8 @@ model Reservation {
   status       String     @default("pending")
   observations String?
   createdAt    DateTime   @default(now())
-  user         User       @relation(fields: [userId], references: [id])
   area         CommonArea @relation(fields: [areaId], references: [id])
-}
-
-enum ReservationStatus {
-  pending
-  confirmed
-  cancelled
-  completed
+  user         User       @relation(fields: [userId], references: [id])
 }
 
 model AreaItem {
@@ -84,8 +65,21 @@ model Payment {
   dueDate        DateTime
   paidDate       DateTime?
   status         String    @default("pending")
-  type           String // condomínio | água | gás | danos | reserva
+  type           String
   referenceMonth String?
   createdAt      DateTime  @default(now())
   user           User      @relation(fields: [userId], references: [id])
+}
+
+enum Role {
+  admin
+  morador
+  limpeza
+}
+
+enum ReservationStatus {
+  pending
+  confirmed
+  cancelled
+  completed
 }

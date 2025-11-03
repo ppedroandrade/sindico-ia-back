@@ -8,7 +8,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { CommonAreasService } from './common-areas.service';
+import { CommonAreasService } from './services/common-areas.service';
 import { CreateCommonAreaDto } from './dto/create-common-area.dto';
 import { UpdateCommonAreaDto } from './dto/update-common-area.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';

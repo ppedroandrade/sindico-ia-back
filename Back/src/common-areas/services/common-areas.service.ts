@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma.service';
-import { CreateCommonAreaDto } from './dto/create-common-area.dto';
-import { UpdateCommonAreaDto } from './dto/update-common-area.dto';
+import { PrismaService } from '../../prisma/prisma.service';
+import { CreateCommonAreaDto } from '../dto/create-common-area.dto';
+import { UpdateCommonAreaDto } from '../dto/update-common-area.dto';
 
 @Injectable()
 export class CommonAreasService {

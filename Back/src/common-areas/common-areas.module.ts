@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
-import { CommonAreasService } from './common-areas.service';
+import { CommonAreasService } from './services/common-areas.service';
 import { CommonAreasController } from './common-areas.controller';
-import { PrismaService } from '../prisma.service';
+import { PrismaModule } from 'src/prisma/prisma.module';
 
 @Module({
+  imports: [PrismaModule],
   controllers: [CommonAreasController],
-  providers: [CommonAreasService, PrismaService],
+  providers: [CommonAreasService],
   exports: [CommonAreasService],
 })
 export class CommonAreasModule {}

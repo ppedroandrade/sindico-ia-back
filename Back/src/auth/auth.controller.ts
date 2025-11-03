@@ -1,5 +1,5 @@
 import { Controller, Post, Body, Get, UseGuards, Req } from '@nestjs/common';
-import { AuthService } from './auth.service';
+import { AuthService } from './services/auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import * as userRequestInterface from './user-request.interface'; // importa aqui
 
@@ -17,6 +17,6 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   me(@Req() req: userRequestInterface.AuthenticatedRequest) {
-    return req.user; // agora é tipado certinho ✅
+    return req.user;
   }
 }
