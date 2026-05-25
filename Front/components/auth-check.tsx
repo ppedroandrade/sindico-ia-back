@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
+import { apiRequest, type User } from "@/lib/api"
 
 export function AuthCheck({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -11,28 +12,52 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
   const [isChecking, setIsChecking] = useState(true)
 
   useEffect(() => {
-    const isAuthenticated = localStorage.getItem("isAuthenticated")
-    const userRole = localStorage.getItem("userRole")
+    let isMounted = true
 
-    if (!isAuthenticated && pathname !== "/login") {
-      router.push("/login")
-    } else if (isAuthenticated && userRole) {
-      const adminOnlyRoutes = ["/", "/ocorrencias", "/configuracoes", "/limpeza/relatorios"]
-      const isAdminRoute = adminOnlyRoutes.some((route) =>
-        route === "/" ? pathname === "/" : pathname.startsWith(route),
-      )
-
-      // Redirect non-admin users away from admin routes
-      if (userRole !== "admin" && isAdminRoute && pathname !== "/login") {
-        if (userRole === "limpeza") {
-          router.push("/limpeza")
-        } else {
-          router.push("/avisos")
-        }
+    async function checkAuth() {
+      if (pathname === "/login") {
+        setIsChecking(false)
+        return
       }
-      setIsChecking(false)
-    } else {
-      setIsChecking(false)
+
+      const token = localStorage.getItem("token")
+      if (!token) {
+        router.push("/login")
+        return
+      }
+
+      try {
+        const user = (await apiRequest("/auth/me")) as User
+        localStorage.setItem("isAuthenticated", "true")
+        localStorage.setItem("userEmail", user.email)
+        localStorage.setItem("userRole", user.role)
+        localStorage.setItem("userName", user.name)
+        if (user.apartment) localStorage.setItem("userUnit", user.apartment)
+        else localStorage.removeItem("userUnit")
+
+        const adminOnlyRoutes = ["/", "/usuarios", "/ocorrencias", "/configuracoes", "/limpeza/relatorios"]
+        const isAdminRoute = adminOnlyRoutes.some((route) =>
+          route === "/" ? pathname === "/" : pathname.startsWith(route),
+        )
+
+        if (user.role !== "admin" && isAdminRoute) {
+          if (user.role === "limpeza") {
+            router.push("/limpeza")
+          } else {
+            router.push("/avisos")
+          }
+        }
+      } catch {
+        localStorage.clear()
+        router.push("/login")
+      } finally {
+        if (isMounted) setIsChecking(false)
+      }
+    }
+
+    checkAuth()
+    return () => {
+      isMounted = false
     }
   }, [router, pathname])
 

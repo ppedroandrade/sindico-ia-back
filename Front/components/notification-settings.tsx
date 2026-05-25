@@ -10,25 +10,25 @@ export function NotificationSettings() {
       id: "payment-received",
       title: "Pagamentos Recebidos",
       description: "Notificar quando um pagamento for confirmado",
-      enabled: true,
+      enabled: false,
     },
     {
       id: "new-occurrence",
       title: "Novas Ocorrências",
       description: "Alertar sobre problemas reportados pelos moradores",
-      enabled: true,
+      enabled: false,
     },
     {
       id: "reservation-pending",
       title: "Reservas Pendentes",
       description: "Notificar sobre reservas aguardando aprovação",
-      enabled: true,
+      enabled: false,
     },
     {
       id: "overdue-payment",
       title: "Inadimplência",
       description: "Alertar sobre pagamentos em atraso",
-      enabled: true,
+      enabled: false,
     },
     {
       id: "chatbot-escalation",
@@ -40,7 +40,7 @@ export function NotificationSettings() {
       id: "daily-summary",
       title: "Resumo Diário",
       description: "Receber relatório diário das atividades",
-      enabled: true,
+      enabled: false,
     },
   ]
 

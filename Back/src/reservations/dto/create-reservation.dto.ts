@@ -1,8 +1,9 @@
-import { IsDateString, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsDateString, IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateReservationDto {
+  @IsOptional()
   @IsString()
-  userId: string;
+  userId?: string;
 
   @IsString()
   areaId: string;
@@ -16,8 +17,9 @@ export class CreateReservationDto {
   @IsDateString()
   endTime: string;
 
-  @IsNumber()
-  totalPrice: number;
+  @IsInt()
+  @Min(1)
+  guests: number;
 
   @IsOptional()
   @IsString()

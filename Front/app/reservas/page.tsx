@@ -5,98 +5,110 @@ import { ReservationCalendar } from "@/components/reservation-calendar"
 import { ReservationsList } from "@/components/reservations-list"
 import { CommonAreas } from "@/components/common-areas"
 import { ResidentReservations } from "@/components/resident-reservations"
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
+import { ApiError, apiRequest, type CommonArea, type Reservation, type ReservationStatus } from "@/lib/api"
+import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { useToast } from "@/hooks/use-toast"
 
-export type Reservation = {
-  id: number
-  area: string
-  unit: string
-  resident: string
-  date: string
-  time: string
-  status: "confirmed" | "pending" | "cancelled"
-  guests: number
-}
+export type { Reservation } from "@/lib/api"
 
 export default function ReservasPage() {
   const [userRole, setUserRole] = useState<string>("")
+  const [reservations, setReservations] = useState<Reservation[]>([])
+  const [areas, setAreas] = useState<CommonArea[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const { toast } = useToast()
+
+  const loadData = async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const [reservationsResponse, areasResponse] = await Promise.all([
+        apiRequest("/reservations"),
+        apiRequest("/common-areas"),
+      ])
+      setReservations(reservationsResponse as Reservation[])
+      setAreas(areasResponse as CommonArea[])
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Não foi possível carregar as reservas"
+      setError(message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   useEffect(() => {
     setUserRole(localStorage.getItem("userRole") || "")
+    loadData()
   }, [])
 
-  const [reservations, setReservations] = useState<Reservation[]>([
-    {
-      id: 1,
-      area: "Salão de Festas",
-      unit: "Apto 205",
-      resident: "Fernanda Souza",
-      date: "2025-10-18",
-      time: "19:00 - 23:00",
-      status: "confirmed",
-      guests: 60,
-    },
-    {
-      id: 2,
-      area: "Churrasqueira",
-      unit: "Apto 301",
-      resident: "Roberto Lima",
-      date: "2025-10-20",
-      time: "12:00 - 18:00",
-      status: "confirmed",
-      guests: 25,
-    },
-    {
-      id: 3,
-      area: "Salão de Festas",
-      unit: "Apto 102",
-      resident: "Lucas Martins",
-      date: "2025-10-22",
-      time: "18:00 - 23:00",
-      status: "pending",
-      guests: 70,
-    },
-    {
-      id: 4,
-      area: "Churrasqueira",
-      unit: "Apto 405",
-      resident: "João Silva",
-      date: "2025-10-22",
-      time: "11:00 - 16:00",
-      status: "pending",
-      guests: 20,
-    },
-    {
-      id: 5,
-      area: "Salão de Festas",
-      unit: "Apto 308",
-      resident: "Pedro Costa",
-      date: "2025-10-25",
-      time: "20:00 - 02:00",
-      status: "confirmed",
-      guests: 80,
-    },
-  ])
-
-  const handleConfirm = (id: number) => {
-    setReservations((prev) => prev.map((res) => (res.id === id ? { ...res, status: "confirmed" as const } : res)))
+  const updateReservation = async (id: string, data: Partial<Reservation> & { status?: ReservationStatus }) => {
+    const payload = {
+      areaId: data.areaId,
+      date: data.date,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      guests: data.guests,
+      observations: data.observations,
+      status: data.status,
+    }
+    const updated = (await apiRequest(`/reservations/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    })) as Reservation
+    setReservations((prev) => prev.map((reservation) => (reservation.id === id ? updated : reservation)))
   }
 
-  const handleCancel = (id: number) => {
-    setReservations((prev) => prev.map((res) => (res.id === id ? { ...res, status: "cancelled" as const } : res)))
+  const handleConfirm = async (id: string) => updateReservation(id, { status: "confirmed" })
+
+  const handleCancel = async (id: string) => {
+    const updated = (await apiRequest(`/reservations/${id}/cancel`, {
+      method: "PATCH",
+    })) as Reservation
+    setReservations((prev) => prev.map((reservation) => (reservation.id === id ? updated : reservation)))
   }
 
-  const handleEdit = (id: number, updatedData: Partial<Reservation>) => {
-    setReservations((prev) => prev.map((res) => (res.id === id ? { ...res, ...updatedData } : res)))
+  const handleEdit = async (id: string, updatedData: Partial<Reservation>) => updateReservation(id, updatedData)
+
+  const handleDelete = async (id: string) => {
+    await apiRequest(`/reservations/${id}`, { method: "DELETE" })
+    setReservations((prev) => prev.filter((reservation) => reservation.id !== id))
   }
 
-  const handleDelete = (id: number) => {
-    setReservations((prev) => prev.filter((res) => res.id !== id))
+  const handleNewReservation = async (payload: {
+    areaId: string
+    date: string
+    startTime: string
+    endTime: string
+    guests: number
+    observations?: string
+  }) => {
+    const created = (await apiRequest("/reservations", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })) as Reservation
+    setReservations((prev) => [created, ...prev])
   }
 
-  const handleNewReservation = (newReservation: Omit<Reservation, "id">) => {
-    const id = Math.max(...reservations.map((r) => r.id), 0) + 1
-    setReservations((prev) => [...prev, { ...newReservation, id }])
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <Card className="p-6">Carregando reservas...</Card>
+      </DashboardLayout>
+    )
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout>
+        <Card className="space-y-4 p-6">
+          <p className="text-sm text-destructive">{error}</p>
+          <Button onClick={loadData}>Tentar novamente</Button>
+        </Card>
+      </DashboardLayout>
+    )
   }
 
   return (
@@ -113,12 +125,13 @@ export default function ReservasPage() {
               <ReservationCalendar reservations={reservations} />
             </div>
             <div>
-              <CommonAreas />
+              <CommonAreas areas={areas} />
             </div>
           </div>
 
           <ReservationsList
             reservations={reservations}
+            areas={areas}
             onConfirm={handleConfirm}
             onCancel={handleCancel}
             onEdit={handleEdit}
@@ -128,8 +141,12 @@ export default function ReservasPage() {
       ) : (
         <ResidentReservations
           reservations={reservations}
+          areas={areas}
           onNewReservation={handleNewReservation}
-          onCancel={handleCancel}
+          onCancel={async (id) => {
+            await handleCancel(id)
+            toast({ title: "Reserva cancelada", description: "Sua reserva foi cancelada com sucesso." })
+          }}
         />
       )}
     </DashboardLayout>

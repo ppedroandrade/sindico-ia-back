@@ -17,34 +17,43 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import type { Reservation } from "@/app/reservas/page"
+import type { CommonArea, Reservation } from "@/lib/api"
 
 type ReservationsListProps = {
   reservations: Reservation[]
-  onConfirm: (id: number) => void
-  onCancel: (id: number) => void
-  onEdit: (id: number, data: Partial<Reservation>) => void
-  onDelete: (id: number) => void
+  areas: CommonArea[]
+  onConfirm: (id: string) => Promise<void>
+  onCancel: (id: string) => Promise<void>
+  onEdit: (id: string, data: Partial<Reservation>) => Promise<void>
+  onDelete: (id: string) => Promise<void>
 }
 
-export function ReservationsList({ reservations, onConfirm, onCancel, onEdit, onDelete }: ReservationsListProps) {
+export function ReservationsList({ reservations, areas, onConfirm, onCancel, onEdit, onDelete }: ReservationsListProps) {
   const { toast } = useToast()
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null)
   const [editForm, setEditForm] = useState<Partial<Reservation>>({})
 
-  const handleConfirmClick = (reservation: Reservation) => {
-    onConfirm(reservation.id)
+  const toDateInput = (value: string) => new Date(value).toISOString().split("T")[0]
+  const toTimeInput = (value: string) => new Date(value).toISOString().slice(11, 16)
+  const combineDateTime = (date: string, time: string) => `${date}T${time}:00.000Z`
+  const formatTimeRange = (reservation: Reservation) =>
+    `${new Date(reservation.startTime).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} - ${new Date(
+      reservation.endTime,
+    ).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
+
+  const handleConfirmClick = async (reservation: Reservation) => {
+    await onConfirm(reservation.id)
     toast({
       title: "Reserva confirmada",
-      description: `A reserva de ${reservation.resident} foi confirmada com sucesso.`,
+      description: `A reserva de ${reservation.user.name} foi confirmada com sucesso.`,
     })
   }
 
-  const handleCancelClick = (reservation: Reservation) => {
-    onCancel(reservation.id)
+  const handleCancelClick = async (reservation: Reservation) => {
+    await onCancel(reservation.id)
     toast({
       title: "Reserva cancelada",
-      description: `A reserva de ${reservation.resident} foi cancelada.`,
+      description: `A reserva de ${reservation.user.name} foi cancelada.`,
       variant: "destructive",
     })
   }
@@ -54,9 +63,9 @@ export function ReservationsList({ reservations, onConfirm, onCancel, onEdit, on
     setEditForm(reservation)
   }
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (editingReservation) {
-      onEdit(editingReservation.id, editForm)
+      await onEdit(editingReservation.id, editForm)
       toast({
         title: "Reserva atualizada",
         description: "As alterações foram salvas com sucesso.",
@@ -66,11 +75,11 @@ export function ReservationsList({ reservations, onConfirm, onCancel, onEdit, on
     }
   }
 
-  const handleDeleteClick = (reservation: Reservation) => {
-    onDelete(reservation.id)
+  const handleDeleteClick = async (reservation: Reservation) => {
+    await onDelete(reservation.id)
     toast({
       title: "Reserva excluída",
-      description: `A reserva de ${reservation.resident} foi excluída.`,
+      description: `A reserva de ${reservation.user.name} foi excluída.`,
       variant: "destructive",
     })
   }
@@ -78,6 +87,7 @@ export function ReservationsList({ reservations, onConfirm, onCancel, onEdit, on
   const statusConfig = {
     confirmed: { label: "Confirmada", className: "bg-accent/10 text-accent border-accent/20" },
     pending: { label: "Pendente", className: "bg-primary/10 text-primary border-primary/20" },
+    completed: { label: "Concluída", className: "bg-muted text-muted-foreground border-border" },
     cancelled: {
       label: "Cancelada",
       className: "bg-destructive/10 text-destructive border-destructive/20",
@@ -109,11 +119,11 @@ export function ReservationsList({ reservations, onConfirm, onCancel, onEdit, on
                   <div className="flex-1 space-y-2">
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2">
                       <div>
-                        <p className="font-semibold text-sm md:text-base">{reservation.area}</p>
+                        <p className="font-semibold text-sm md:text-base">{reservation.area.name}</p>
                         <div className="flex items-center gap-2 md:gap-3 mt-1 flex-wrap">
                           <span className="text-xs md:text-sm text-muted-foreground flex items-center gap-1">
                             <User className="h-3 w-3" />
-                            {reservation.unit} - {reservation.resident}
+                            {reservation.user.apartment ?? "Sem unidade"} - {reservation.user.name}
                           </span>
                         </div>
                       </div>
@@ -131,7 +141,7 @@ export function ReservationsList({ reservations, onConfirm, onCancel, onEdit, on
                         {new Date(reservation.date).toLocaleDateString("pt-BR")}
                       </span>
                       <span className="hidden md:inline">•</span>
-                      <span>{reservation.time}</span>
+                      <span>{formatTimeRange(reservation)}</span>
                       <span className="hidden md:inline">•</span>
                       <span>{reservation.guests} convidados</span>
                     </div>
@@ -198,36 +208,28 @@ export function ReservationsList({ reservations, onConfirm, onCancel, onEdit, on
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="area">Área Comum</Label>
-              <Select value={editForm.area} onValueChange={(value) => setEditForm({ ...editForm, area: value })}>
+              <Select value={editForm.areaId} onValueChange={(value) => setEditForm({ ...editForm, areaId: value })}>
                 <SelectTrigger id="area">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Salão de Festas">Salão de Festas</SelectItem>
-                  <SelectItem value="Churrasqueira">Churrasqueira</SelectItem>
-                  <SelectItem value="Piscina">Piscina</SelectItem>
-                  <SelectItem value="Quadra">Quadra</SelectItem>
-                  <SelectItem value="Espaço Gourmet">Espaço Gourmet</SelectItem>
+                  {areas.map((area) => (
+                    <SelectItem key={area.id} value={area.id}>
+                      {area.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="grid gap-2">
               <Label htmlFor="resident">Morador</Label>
-              <Input
-                id="resident"
-                value={editForm.resident || ""}
-                onChange={(e) => setEditForm({ ...editForm, resident: e.target.value })}
-              />
+              <Input id="resident" value={editingReservation?.user.name || ""} disabled />
             </div>
 
             <div className="grid gap-2">
               <Label htmlFor="unit">Unidade</Label>
-              <Input
-                id="unit"
-                value={editForm.unit || ""}
-                onChange={(e) => setEditForm({ ...editForm, unit: e.target.value })}
-              />
+              <Input id="unit" value={editingReservation?.user.apartment || ""} disabled />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -236,8 +238,8 @@ export function ReservationsList({ reservations, onConfirm, onCancel, onEdit, on
                 <Input
                   id="date"
                   type="date"
-                  value={editForm.date || ""}
-                  onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+                  value={editForm.date ? toDateInput(editForm.date) : ""}
+                  onChange={(e) => setEditForm({ ...editForm, date: `${e.target.value}T00:00:00.000Z` })}
                 />
               </div>
 
@@ -253,12 +255,32 @@ export function ReservationsList({ reservations, onConfirm, onCancel, onEdit, on
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="time">Horário</Label>
+              <Label htmlFor="startTime">Início</Label>
               <Input
-                id="time"
-                value={editForm.time || ""}
-                onChange={(e) => setEditForm({ ...editForm, time: e.target.value })}
-                placeholder="Ex: 19:00 - 23:00"
+                id="startTime"
+                type="time"
+                value={editForm.startTime ? toTimeInput(editForm.startTime) : ""}
+                onChange={(e) =>
+                  setEditForm({
+                    ...editForm,
+                    startTime: combineDateTime(editForm.date ? toDateInput(editForm.date) : toDateInput(new Date().toISOString()), e.target.value),
+                  })
+                }
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="endTime">Fim</Label>
+              <Input
+                id="endTime"
+                type="time"
+                value={editForm.endTime ? toTimeInput(editForm.endTime) : ""}
+                onChange={(e) =>
+                  setEditForm({
+                    ...editForm,
+                    endTime: combineDateTime(editForm.date ? toDateInput(editForm.date) : toDateInput(new Date().toISOString()), e.target.value),
+                  })
+                }
               />
             </div>
 

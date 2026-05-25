@@ -11,7 +11,7 @@ type ReservationCalendarProps = {
 }
 
 export function ReservationCalendar({ reservations }: ReservationCalendarProps) {
-  const [currentDate, setCurrentDate] = useState(new Date(2025, 9, 16)) // October 16, 2025
+  const [currentDate, setCurrentDate] = useState(new Date())
 
   const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate()
   const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay()
@@ -88,7 +88,11 @@ export function ReservationCalendar({ reservations }: ReservationCalendarProps) 
           {Array.from({ length: daysInMonth }).map((_, i) => {
             const day = i + 1
             const hasReservation = reservationsByDay[day]
-            const isToday = day === 16
+            const today = new Date()
+            const isToday =
+              day === today.getDate() &&
+              currentDate.getMonth() === today.getMonth() &&
+              currentDate.getFullYear() === today.getFullYear()
 
             return (
               <button

@@ -1,52 +1,31 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Bell, Calendar, AlertTriangle, Info, Search } from "lucide-react"
-
-interface Announcement {
-  id: string
-  title: string
-  content: string
-  type: "info" | "warning" | "urgent" | "event"
-  date: Date
-  author: string
-}
-
-const announcements: Announcement[] = [
-  {
-    id: "1",
-    title: "Assembleia Geral Ordinária",
-    content:
-      "Convocamos todos os condôminos para a Assembleia Geral Ordinária que será realizada no dia 15/02/2025 às 19h no salão de festas. Pauta: aprovação de contas, eleição do síndico e discussão sobre obras.",
-    type: "event",
-    date: new Date("2025-02-15"),
-    author: "Administração",
-  },
-  {
-    id: "2",
-    title: "Manutenção dos Elevadores",
-    content:
-      "Informamos que nos dias 20 e 21/01/2025 será realizada manutenção preventiva nos elevadores. O serviço será das 8h às 17h. Pedimos a compreensão de todos.",
-    type: "warning",
-    date: new Date("2025-01-20"),
-    author: "Síndico",
-  },
-  {
-    id: "3",
-    title: "Novo Horário da Piscina",
-    content:
-      "A partir de 01/02/2025, o horário de funcionamento da piscina será das 7h às 22h. Lembramos que é obrigatório o uso de touca.",
-    type: "info",
-    date: new Date("2025-02-01"),
-    author: "Administração",
-  },
-]
+import { ApiError, apiRequest, type Announcement, type AnnouncementType } from "@/lib/api"
 
 export function ResidentAnnouncements() {
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [searchTerm, setSearchTerm] = useState("")
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function loadAnnouncements() {
+      try {
+        setAnnouncements((await apiRequest("/announcements")) as Announcement[])
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : "Não foi possível carregar os avisos")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadAnnouncements()
+  }, [])
 
   const filteredAnnouncements = announcements.filter(
     (ann) =>
@@ -54,7 +33,7 @@ export function ResidentAnnouncements() {
       ann.content.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
-  const getTypeIcon = (type: Announcement["type"]) => {
+  const getTypeIcon = (type: AnnouncementType) => {
     switch (type) {
       case "urgent":
         return <AlertTriangle className="h-4 w-4" />
@@ -67,20 +46,9 @@ export function ResidentAnnouncements() {
     }
   }
 
-  const getTypeBadge = (type: Announcement["type"]) => {
-    const variants = {
-      urgent: "destructive",
-      warning: "default",
-      event: "secondary",
-      info: "outline",
-    } as const
-
-    const labels = {
-      urgent: "Urgente",
-      warning: "Atenção",
-      event: "Evento",
-      info: "Informação",
-    }
+  const getTypeBadge = (type: AnnouncementType) => {
+    const variants = { urgent: "destructive", warning: "default", event: "secondary", info: "outline" } as const
+    const labels = { urgent: "Urgente", warning: "Atenção", event: "Evento", info: "Informação" }
 
     return (
       <Badge variant={variants[type]} className="gap-1">
@@ -107,8 +75,11 @@ export function ResidentAnnouncements() {
         />
       </div>
 
+      {isLoading && <Card className="p-6">Carregando avisos...</Card>}
+      {error && <Card className="p-6 text-sm text-destructive">{error}</Card>}
+
       <div className="space-y-4">
-        {filteredAnnouncements.length === 0 ? (
+        {!isLoading && !error && filteredAnnouncements.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Bell className="h-12 w-12 text-muted-foreground mb-4" />
@@ -125,15 +96,9 @@ export function ResidentAnnouncements() {
                     {getTypeBadge(announcement.type)}
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs md:text-sm text-muted-foreground">
-                    <span>Por {announcement.author}</span>
+                    <span>Por {announcement.author.name}</span>
                     <span className="hidden sm:inline">•</span>
-                    <span>
-                      {announcement.date.toLocaleDateString("pt-BR", {
-                        day: "2-digit",
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </span>
+                    <span>{new Date(announcement.publishAt).toLocaleDateString("pt-BR")}</span>
                   </div>
                 </div>
               </CardHeader>

@@ -12,22 +12,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar, Clock, Users, MapPin, Plus, X, CheckCircle2, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useState, useEffect } from "react"
-import type { Reservation } from "@/app/reservas/page"
+import type { CommonArea, Reservation } from "@/lib/api"
 
 interface ResidentReservationsProps {
   reservations: Reservation[]
-  onNewReservation: (reservation: Omit<Reservation, "id">) => void
-  onCancel: (id: number) => void
+  areas: CommonArea[]
+  onNewReservation: (reservation: {
+    areaId: string
+    date: string
+    startTime: string
+    endTime: string
+    guests: number
+    observations?: string
+  }) => Promise<void>
+  onCancel: (id: string) => Promise<void>
 }
 
-const commonAreas = [
-  { id: "salao", name: "Salão de Festas", price: 200 },
-  { id: "churrasqueira", name: "Churrasqueira", price: 100 },
-  { id: "piscina", name: "Área da Piscina", price: 150 },
-  { id: "quadra", name: "Quadra Poliesportiva", price: 80 },
-]
-
-export function ResidentReservations({ reservations, onNewReservation, onCancel }: ResidentReservationsProps) {
+export function ResidentReservations({ reservations, areas, onNewReservation, onCancel }: ResidentReservationsProps) {
   const { toast } = useToast()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [userName, setUserName] = useState("")
@@ -46,26 +47,20 @@ export function ResidentReservations({ reservations, onNewReservation, onCancel 
   }, [])
 
   // Filter reservations for current user
-  const myReservations = reservations.filter((r) => r.unit === userUnit)
+  const myReservations = reservations.filter((r) => !userUnit || r.user.apartment === userUnit)
   const pendingReservations = myReservations.filter((r) => r.status === "pending")
   const confirmedReservations = myReservations.filter((r) => r.status === "confirmed")
 
-  const handleSubmitReservation = (e: React.FormEvent) => {
+  const handleSubmitReservation = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const areaName = commonAreas.find((a) => a.id === selectedArea)?.name || ""
-
-    const newReservation: Omit<Reservation, "id"> = {
-      area: areaName,
-      unit: userUnit,
-      resident: userName,
-      date,
-      time: `${startTime} - ${endTime}`,
-      status: "pending",
+    await onNewReservation({
+      areaId: selectedArea,
+      date: `${date}T00:00:00.000Z`,
+      startTime: `${date}T${startTime}:00.000Z`,
+      endTime: `${date}T${endTime}:00.000Z`,
       guests: Number.parseInt(guests),
-    }
-
-    onNewReservation(newReservation)
+    })
 
     toast({
       title: "Solicitação enviada!",
@@ -81,8 +76,8 @@ export function ResidentReservations({ reservations, onNewReservation, onCancel 
     setIsDialogOpen(false)
   }
 
-  const handleCancelReservation = (id: number) => {
-    onCancel(id)
+  const handleCancelReservation = async (id: string) => {
+    await onCancel(id)
     toast({
       title: "Reserva cancelada",
       description: "Sua reserva foi cancelada com sucesso.",
@@ -142,9 +137,11 @@ export function ResidentReservations({ reservations, onNewReservation, onCancel 
                     <SelectValue placeholder="Selecione uma área" />
                   </SelectTrigger>
                   <SelectContent>
-                    {commonAreas.map((area) => (
+                    {areas
+                      .filter((area) => area.available)
+                      .map((area) => (
                       <SelectItem key={area.id} value={area.id}>
-                        {area.name} - R$ {area.price.toFixed(2)}
+                        {area.name} - R$ {area.pricePerHour.toFixed(2)}/h
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -253,13 +250,13 @@ export function ResidentReservations({ reservations, onNewReservation, onCancel 
       <Card className="p-4 md:p-6">
         <h2 className="mb-4 text-base md:text-lg font-semibold">Áreas Disponíveis</h2>
         <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-4">
-          {commonAreas.map((area) => (
+          {areas.map((area) => (
             <div key={area.id} className="rounded-lg border p-3 md:p-4">
               <div className="mb-2 flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-lg bg-primary/10">
                 <MapPin className="h-4 w-4 md:h-5 md:w-5 text-primary" />
               </div>
               <h3 className="font-medium text-sm md:text-base">{area.name}</h3>
-              <p className="text-xs md:text-sm text-muted-foreground">R$ {area.price.toFixed(2)}</p>
+              <p className="text-xs md:text-sm text-muted-foreground">R$ {area.pricePerHour.toFixed(2)}/h</p>
             </div>
           ))}
         </div>
@@ -286,7 +283,7 @@ export function ResidentReservations({ reservations, onNewReservation, onCancel 
                     <MapPin className="h-4 w-4 md:h-5 md:w-5 text-primary" />
                   </div>
                   <div>
-                    <p className="font-medium text-sm md:text-base">{reservation.area}</p>
+                    <p className="font-medium text-sm md:text-base">{reservation.area.name}</p>
                     <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3 text-xs md:text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
@@ -295,7 +292,15 @@ export function ResidentReservations({ reservations, onNewReservation, onCancel 
                       <span className="hidden md:inline">•</span>
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        {reservation.time}
+                        {new Date(reservation.startTime).toLocaleTimeString("pt-BR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}{" "}
+                        -{" "}
+                        {new Date(reservation.endTime).toLocaleTimeString("pt-BR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </span>
                       <span className="hidden md:inline">•</span>
                       <span className="flex items-center gap-1">

@@ -19,17 +19,54 @@ enum Role {
   limpeza
 }
 
+enum ReservationStatus {
+  pending
+  confirmed
+  cancelled
+  completed
+}
+
+enum AnnouncementType {
+  info
+  warning
+  urgent
+  event
+}
+
+enum OccurrenceStatus {
+  open
+  in_progress
+  resolved
+  cancelled
+}
+
+enum OccurrencePriority {
+  low
+  medium
+  high
+  urgent
+}
+
 model User {
-  id           String        @id @default(uuid())
-  name         String
-  email        String        @unique
-  password     String
-  role         Role
-  apartment    String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @default(now()) @updatedAt
-  reservations Reservation[]
-  payments     Payment[]
+  id                   String           @id @default(uuid())
+  name                 String
+  email                String           @unique
+  username             String?          @unique
+  password             String
+  role                 Role
+  cpf                  String?          @unique
+  apartment            String?
+  parkingSpaces        String[]         @default([])
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @default(now()) @updatedAt
+  reservations         Reservation[]
+  payments             Payment[]
+  announcements        Announcement[]   @relation("AnnouncementAuthor")
+  occurrences          Occurrence[]     @relation("OccurrenceReporter")
+  assignedOccurrences  Occurrence[]     @relation("OccurrenceAssignee")
+  auditLogs            AuditLog[]
+  aiConversations      AiConversation[]
+  chatMessages         ChatMessage[]
 }
 
 model CommonArea {
@@ -46,25 +83,23 @@ model CommonArea {
 }
 
 model Reservation {
-  id           String     @id @default(uuid())
+  id           String            @id @default(uuid())
   userId       String
   areaId       String
   date         DateTime
   startTime    DateTime
   endTime      DateTime
   totalPrice   Float
-  status       String     @default("pending")
+  guests       Int               @default(1)
+  status       ReservationStatus @default(pending)
   observations String?
-  createdAt    DateTime   @default(now())
-  user         User       @relation(fields: [userId], references: [id])
-  area         CommonArea @relation(fields: [areaId], references: [id])
-}
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @default(now()) @updatedAt
+  user         User              @relation(fields: [userId], references: [id])
+  area         CommonArea        @relation(fields: [areaId], references: [id])
 
-enum ReservationStatus {
-  pending
-  confirmed
-  cancelled
-  completed
+  @@index([userId])
+  @@index([areaId, startTime, endTime])
 }
 
 model AreaItem {
@@ -88,4 +123,74 @@ model Payment {
   referenceMonth String?
   createdAt      DateTime  @default(now())
   user           User      @relation(fields: [userId], references: [id])
+}
+
+model Announcement {
+  id        String           @id @default(uuid())
+  title     String
+  content   String
+  type      AnnouncementType @default(info)
+  publishAt DateTime
+  authorId  String
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @default(now()) @updatedAt
+  author    User             @relation("AnnouncementAuthor", fields: [authorId], references: [id])
+
+  @@index([publishAt])
+}
+
+model Occurrence {
+  id          String             @id @default(uuid())
+  title       String
+  description String
+  category    String
+  priority    OccurrencePriority @default(medium)
+  status      OccurrenceStatus   @default(open)
+  reporterId  String
+  assigneeId  String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @default(now()) @updatedAt
+  reporter    User               @relation("OccurrenceReporter", fields: [reporterId], references: [id])
+  assignee    User?              @relation("OccurrenceAssignee", fields: [assigneeId], references: [id])
+
+  @@index([reporterId])
+  @@index([status])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([entity, entityId])
+}
+
+model AiConversation {
+  id        String        @id @default(uuid())
+  userId    String
+  title     String?
+  context   Json?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @default(now()) @updatedAt
+  user      User          @relation(fields: [userId], references: [id])
+  messages  ChatMessage[]
+}
+
+model ChatMessage {
+  id             String         @id @default(uuid())
+  conversationId String
+  userId         String?
+  role           String
+  content        String
+  metadata       Json?
+  createdAt      DateTime       @default(now())
+  conversation   AiConversation @relation(fields: [conversationId], references: [id])
+  user           User?          @relation(fields: [userId], references: [id])
+
+  @@index([conversationId])
 }

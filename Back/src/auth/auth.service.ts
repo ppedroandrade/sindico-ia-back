@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -12,8 +12,12 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async validateUser(email: string, password: string): Promise<User> {
-    const user = await this.prisma.user.findUnique({ where: { email } });
+  async validateUser(login: string, password: string): Promise<User> {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        OR: [{ email: login }, { username: login }],
+      },
+    });
     if (!user) throw new UnauthorizedException('Usuário não encontrado');
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -22,11 +26,17 @@ export class AuthService {
     return user;
   }
 
-  login(user: JwtUser) {
-    const payload = { email: user.email, userId: user.userId, role: user.role };
+  private toSafeUser(user: User) {
+    const { password, ...safeUser } = user;
+    void password;
+    return safeUser;
+  }
+
+  login(user: User) {
+    const payload = { email: user.email, userId: user.id, role: user.role };
     return {
       access_token: this.jwtService.sign(payload),
-      user: payload,
+      user: this.toSafeUser(user),
     };
   }
 
@@ -36,6 +46,11 @@ export class AuthService {
     password: string;
     role: Role;
   }) {
+    const existing = await this.prisma.user.findUnique({
+      where: { email: data.email },
+    });
+    if (existing) throw new ConflictException('Email já cadastrado');
+
     const hashedPassword = await bcrypt.hash(data.password, 10);
     const user = await this.prisma.user.create({
       data: {
@@ -45,8 +60,14 @@ export class AuthService {
         role: data.role,
       },
     });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...safeUser } = user;
-    return safeUser;
+    return this.toSafeUser(user);
+  }
+
+  async me(user: JwtUser) {
+    const dbUser = await this.prisma.user.findUnique({
+      where: { id: user.userId },
+    });
+    if (!dbUser) throw new UnauthorizedException('Usuário não encontrado');
+    return this.toSafeUser(dbUser);
   }
 }

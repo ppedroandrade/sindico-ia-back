@@ -10,9 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Building2, Lock, Mail } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { ApiError, apiRequest } from "@/lib/api"
-
-type UserRole = "admin" | "morador" | "limpeza"
+import { ApiError, apiRequest, type User, type UserRole } from "@/lib/api"
 
 const roleRedirect: Record<UserRole, string> = {
   admin: "/",
@@ -39,13 +37,7 @@ export default function LoginPage() {
 
       const { access_token: accessToken, user } = response as {
         access_token: string
-        user?: {
-          id: string
-          name?: string | null
-          email: string
-          role: UserRole
-          apartment?: string | null
-        }
+        user?: User
       }
 
       localStorage.setItem("token", accessToken)

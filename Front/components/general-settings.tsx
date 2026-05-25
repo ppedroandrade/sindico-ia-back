@@ -13,11 +13,11 @@ export function GeneralSettings() {
   const [isSaving, setIsSaving] = useState(false)
 
   const [formData, setFormData] = useState({
-    name: "Residencial Jardim das Flores",
-    cnpj: "12.345.678/0001-90",
-    units: "124",
-    phone: "(11) 3456-7890",
-    address: "Rua das Flores, 123 - Jardim Primavera, São Paulo - SP, 01234-567",
+    name: "",
+    cnpj: "",
+    units: "",
+    phone: "",
+    address: "",
   })
 
   const handleSave = () => {
@@ -33,11 +33,11 @@ export function GeneralSettings() {
 
   const handleCancel = () => {
     setFormData({
-      name: "Residencial Jardim das Flores",
-      cnpj: "12.345.678/0001-90",
-      units: "124",
-      phone: "(11) 3456-7890",
-      address: "Rua das Flores, 123 - Jardim Primavera, São Paulo - SP, 01234-567",
+      name: "",
+      cnpj: "",
+      units: "",
+      phone: "",
+      address: "",
     })
     toast({
       title: "Alterações descartadas",

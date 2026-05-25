@@ -4,6 +4,11 @@ import { AuthModule } from './auth/auth.module';
 import { CommonAreasModule } from './common-areas/common-areas.module';
 import { ReservationsModule } from './reservations/reservations.module';
 import { PrismaService } from './prisma.service';
+import { AnnouncementsModule } from './announcements/announcements.module';
+import { OccurrencesModule } from './occurrences/occurrences.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { AiModule } from './ai/ai.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -11,6 +16,11 @@ import { PrismaService } from './prisma.service';
     AuthModule,
     CommonAreasModule,
     ReservationsModule,
+    AnnouncementsModule,
+    OccurrencesModule,
+    DashboardModule,
+    AiModule,
+    UsersModule,
   ],
   providers: [PrismaService],
 })

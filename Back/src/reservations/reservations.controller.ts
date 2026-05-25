@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { ReservationsService } from './reservations.service';
@@ -14,6 +15,7 @@ import { UpdateReservationDto } from './dto/update-reservation.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import type { AuthenticatedRequest } from '../auth/user-request.interface';
 
 @Controller('reservations')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -22,26 +24,32 @@ export class ReservationsController {
 
   @Roles('morador', 'admin')
   @Post()
-  create(@Body() dto: CreateReservationDto) {
-    return this.reservationsService.create(dto);
+  create(@Body() dto: CreateReservationDto, @Req() req: AuthenticatedRequest) {
+    return this.reservationsService.create(dto, req.user);
   }
 
-  @Roles('admin')
+  @Roles('admin', 'morador', 'limpeza')
   @Get()
-  findAll() {
-    return this.reservationsService.findAll();
+  findAll(@Req() req: AuthenticatedRequest) {
+    return this.reservationsService.findAll(req.user);
   }
 
   @Roles('admin', 'morador')
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.reservationsService.findOne(id);
+  findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return this.reservationsService.findOne(id, req.user);
   }
 
   @Roles('admin')
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateReservationDto) {
     return this.reservationsService.update(id, dto);
+  }
+
+  @Roles('admin', 'morador')
+  @Patch(':id/cancel')
+  cancel(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return this.reservationsService.cancel(id, req.user);
   }
 
   @Roles('admin')

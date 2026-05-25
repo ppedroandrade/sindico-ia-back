@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Settings,
   Building2,
+  UserPlus,
   LogOut,
   Bell,
   X,
@@ -40,6 +41,11 @@ const adminNavigation = [
     name: "Áreas Comuns",
     href: "/areas-comuns",
     icon: Building2,
+  },
+  {
+    name: "Usuários",
+    href: "/usuarios",
+    icon: UserPlus,
   },
   {
     name: "Ocorrências",
@@ -130,6 +136,7 @@ export function DashboardSidebar({ isOpen = false, onClose }: DashboardSidebarPr
 
   const handleLogout = () => {
     localStorage.removeItem("isAuthenticated")
+    localStorage.removeItem("token")
     localStorage.removeItem("userEmail")
     localStorage.removeItem("userRole")
     localStorage.removeItem("userName")
