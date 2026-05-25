@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { JwtUser } from '../auth/user-request.interface';
 import { CreateMessageDto } from './dto/create-message.dto';
@@ -7,10 +8,22 @@ import { CreateMessageDto } from './dto/create-message.dto';
 export class AiService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private readonly conversationInclude = {
+    user: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        apartment: true,
+      },
+    },
+    messages: { orderBy: { createdAt: 'asc' as const } },
+  };
+
   findConversations(user: JwtUser) {
     return this.prisma.aiConversation.findMany({
-      where: { userId: user.userId },
-      include: { messages: { orderBy: { createdAt: 'asc' } } },
+      where: user.role === Role.admin ? {} : { userId: user.userId },
+      include: this.conversationInclude,
       orderBy: { updatedAt: 'desc' },
     });
   }
@@ -26,17 +39,29 @@ export class AiService {
           },
         });
 
-    if (!conversation || conversation.userId !== user.userId) {
+    if (!conversation) {
       throw new NotFoundException('Conversa não encontrada');
+    }
+
+    if (user.role !== Role.admin && conversation.userId !== user.userId) {
+      throw new NotFoundException('Conversa não encontrada');
+    }
+
+    const role = user.role === Role.admin ? (data.role ?? 'assistant') : 'user';
+    if (user.role !== Role.admin && data.role === 'assistant') {
+      throw new ForbiddenException('Acesso negado');
     }
 
     const message = await this.prisma.chatMessage.create({
       data: {
         conversationId: conversation.id,
-        userId: user.userId,
-        role: 'user',
+        userId: role === 'user' ? user.userId : null,
+        role,
         content: data.content,
-        metadata: { aiStatus: 'queued' },
+        metadata: {
+          aiStatus: role === 'user' ? 'queued' : 'answered_by_admin',
+          authorUserId: user.userId,
+        },
       },
     });
 

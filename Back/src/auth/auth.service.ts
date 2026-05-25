@@ -15,6 +15,7 @@ export class AuthService {
   async validateUser(login: string, password: string): Promise<User> {
     const user = await this.prisma.user.findFirst({
       where: {
+        active: true,
         OR: [{ email: login }, { username: login }],
       },
     });
@@ -69,5 +70,23 @@ export class AuthService {
     });
     if (!dbUser) throw new UnauthorizedException('Usuário não encontrado');
     return this.toSafeUser(dbUser);
+  }
+
+  async changePassword(user: JwtUser, currentPassword: string, newPassword: string) {
+    const dbUser = await this.prisma.user.findUnique({
+      where: { id: user.userId },
+    });
+    if (!dbUser || !dbUser.active) throw new UnauthorizedException('Usuário não encontrado');
+
+    const isPasswordValid = await bcrypt.compare(currentPassword, dbUser.password);
+    if (!isPasswordValid) throw new UnauthorizedException('Senha atual incorreta');
+
+    const password = await bcrypt.hash(newPassword, 10);
+    const updated = await this.prisma.user.update({
+      where: { id: user.userId },
+      data: { password },
+    });
+
+    return this.toSafeUser(updated);
   }
 }

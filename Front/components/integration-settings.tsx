@@ -51,7 +51,7 @@ export function IntegrationSettings() {
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">{integration.description}</p>
                   <div className="mt-3">
-                    <Button size="sm" variant="outline" className="h-8 text-xs bg-transparent">
+                    <Button size="sm" variant="outline" className="h-8 text-xs bg-transparent" disabled>
                       <Settings className="h-3 w-3 mr-1" />
                       Conectar
                     </Button>

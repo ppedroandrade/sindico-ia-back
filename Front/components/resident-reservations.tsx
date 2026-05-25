@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar, Clock, Users, MapPin, Plus, X, CheckCircle2, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useState, useEffect } from "react"
-import type { CommonArea, Reservation } from "@/lib/api"
+import { ApiError, type CommonArea, type Reservation } from "@/lib/api"
 
 interface ResidentReservationsProps {
   reservations: Reservation[]
@@ -54,26 +54,33 @@ export function ResidentReservations({ reservations, areas, onNewReservation, on
   const handleSubmitReservation = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    await onNewReservation({
-      areaId: selectedArea,
-      date: `${date}T00:00:00.000Z`,
-      startTime: `${date}T${startTime}:00.000Z`,
-      endTime: `${date}T${endTime}:00.000Z`,
-      guests: Number.parseInt(guests),
-    })
+    try {
+      await onNewReservation({
+        areaId: selectedArea,
+        date: `${date}T00:00:00.000Z`,
+        startTime: `${date}T${startTime}:00.000Z`,
+        endTime: `${date}T${endTime}:00.000Z`,
+        guests: Number.parseInt(guests),
+      })
 
-    toast({
-      title: "Solicitação enviada!",
-      description: "Sua reserva está aguardando aprovação do síndico.",
-    })
+      toast({
+        title: "Solicitação enviada!",
+        description: "Sua reserva está aguardando aprovação do síndico.",
+      })
 
-    // Reset form
-    setSelectedArea("")
-    setDate("")
-    setStartTime("")
-    setEndTime("")
-    setGuests("")
-    setIsDialogOpen(false)
+      setSelectedArea("")
+      setDate("")
+      setStartTime("")
+      setEndTime("")
+      setGuests("")
+      setIsDialogOpen(false)
+    } catch (err) {
+      toast({
+        title: "Reserva não enviada",
+        description: err instanceof ApiError ? err.message : "Tente novamente.",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleCancelReservation = async (id: string) => {

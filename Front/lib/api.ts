@@ -56,6 +56,7 @@ export type User = {
   cpf?: string | null;
   apartment?: string | null;
   parkingSpaces?: string[];
+  active?: boolean;
 };
 
 export type AreaItem = {
@@ -105,4 +106,50 @@ export type Announcement = {
   type: AnnouncementType;
   publishAt: string;
   author: User;
+};
+
+export type Payment = {
+  id: string;
+  userId: string;
+  amount: number;
+  dueDate: string;
+  paidDate?: string | null;
+  status: "pending" | "paid" | "overdue" | string;
+  type: string;
+  referenceMonth?: string | null;
+  createdAt: string;
+  user?: Pick<User, "id" | "name" | "email" | "apartment" | "parkingSpaces">;
+};
+
+export type Occurrence = {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  priority: "low" | "medium" | "high" | "urgent";
+  status: "open" | "in_progress" | "resolved" | "cancelled";
+  createdAt: string;
+  reporter?: Pick<User, "id" | "name" | "email" | "apartment">;
+  assignee?: Pick<User, "id" | "name" | "email"> | null;
+};
+
+export type ChatMessage = {
+  id: string;
+  conversationId: string;
+  userId?: string | null;
+  role: "user" | "assistant" | "system" | string;
+  content: string;
+  metadata?: unknown;
+  createdAt: string;
+};
+
+export type AiConversation = {
+  id: string;
+  userId: string;
+  title?: string | null;
+  context?: unknown;
+  createdAt: string;
+  updatedAt: string;
+  user?: Pick<User, "id" | "name" | "email" | "apartment">;
+  messages: ChatMessage[];
 };

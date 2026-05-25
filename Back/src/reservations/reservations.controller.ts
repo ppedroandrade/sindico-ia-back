@@ -53,6 +53,12 @@ export class ReservationsController {
   }
 
   @Roles('admin')
+  @Patch(':id/status')
+  updateStatus(@Param('id') id: string, @Body() dto: { status: string }) {
+    return this.reservationsService.updateStatus(id, dto.status);
+  }
+
+  @Roles('admin')
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.reservationsService.remove(id);

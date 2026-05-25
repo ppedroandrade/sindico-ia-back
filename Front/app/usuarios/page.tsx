@@ -121,6 +121,19 @@ export default function UsuariosPage() {
 
   const residents = users.filter((user) => user.role === "morador")
 
+  const setUserActive = async (userId: string, active: boolean) => {
+    const updated = (await apiRequest(`/users/${userId}/active`, {
+      method: "PATCH",
+      body: JSON.stringify({ active }),
+    })) as User
+    setUsers((current) => current.map((user) => (user.id === userId ? updated : user)))
+  }
+
+  const deleteUser = async (userId: string) => {
+    await apiRequest(`/users/${userId}`, { method: "DELETE" })
+    setUsers((current) => current.filter((user) => user.id !== userId))
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -266,6 +279,8 @@ export default function UsuariosPage() {
                   <TableHead>CPF</TableHead>
                   <TableHead>Apto</TableHead>
                   <TableHead>Vagas</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -291,6 +306,25 @@ export default function UsuariosPage() {
                         ) : (
                           "-"
                         )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={resident.active === false ? "secondary" : "default"}>
+                        {resident.active === false ? "Inativo" : "Ativo"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setUserActive(resident.id, resident.active === false)}
+                        >
+                          {resident.active === false ? "Ativar" : "Desativar"}
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => deleteUser(resident.id)}>
+                          Excluir
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>

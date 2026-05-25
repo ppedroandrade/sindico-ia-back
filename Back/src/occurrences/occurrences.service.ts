@@ -9,13 +9,32 @@ import { UpdateOccurrenceDto } from './dto/update-occurrence.dto';
 export class OccurrencesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private readonly includeUsers = {
+    reporter: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        apartment: true,
+        parkingSpaces: true,
+      },
+    },
+    assignee: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+      },
+    },
+  };
+
   create(data: CreateOccurrenceDto, user: JwtUser) {
     return this.prisma.occurrence.create({
       data: {
         ...data,
         reporterId: user.userId,
       },
-      include: { reporter: true, assignee: true },
+      include: this.includeUsers,
     });
   }
 
@@ -24,7 +43,7 @@ export class OccurrencesService {
       user.role === Role.admin ? {} : { reporterId: user.userId };
     return this.prisma.occurrence.findMany({
       where,
-      include: { reporter: true, assignee: true },
+      include: this.includeUsers,
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -32,7 +51,7 @@ export class OccurrencesService {
   async findOne(id: string, user: JwtUser) {
     const occurrence = await this.prisma.occurrence.findUnique({
       where: { id },
-      include: { reporter: true, assignee: true },
+      include: this.includeUsers,
     });
     if (!occurrence) throw new NotFoundException('Ocorrência não encontrada');
     if (user.role !== Role.admin && occurrence.reporterId !== user.userId) {
@@ -47,7 +66,7 @@ export class OccurrencesService {
     return this.prisma.occurrence.update({
       where: { id },
       data,
-      include: { reporter: true, assignee: true },
+      include: this.includeUsers,
     });
   }
 }

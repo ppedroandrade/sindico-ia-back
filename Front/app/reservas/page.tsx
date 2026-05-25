@@ -21,8 +21,8 @@ export default function ReservasPage() {
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
 
-  const loadData = async () => {
-    setIsLoading(true)
+  const loadData = async (showLoading = false) => {
+    if (showLoading) setIsLoading(true)
     setError(null)
     try {
       const [reservationsResponse, areasResponse] = await Promise.all([
@@ -35,13 +35,15 @@ export default function ReservasPage() {
       const message = err instanceof ApiError ? err.message : "Não foi possível carregar as reservas"
       setError(message)
     } finally {
-      setIsLoading(false)
+      if (showLoading) setIsLoading(false)
     }
   }
 
   useEffect(() => {
     setUserRole(localStorage.getItem("userRole") || "")
-    loadData()
+    loadData(true)
+    const interval = window.setInterval(() => loadData(false), 5000)
+    return () => window.clearInterval(interval)
   }, [])
 
   const updateReservation = async (id: string, data: Partial<Reservation> & { status?: ReservationStatus }) => {
@@ -105,7 +107,7 @@ export default function ReservasPage() {
       <DashboardLayout>
         <Card className="space-y-4 p-6">
           <p className="text-sm text-destructive">{error}</p>
-          <Button onClick={loadData}>Tentar novamente</Button>
+          <Button onClick={() => loadData(true)}>Tentar novamente</Button>
         </Card>
       </DashboardLayout>
     )

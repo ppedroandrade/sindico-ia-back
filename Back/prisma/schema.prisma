@@ -47,6 +47,54 @@ enum OccurrencePriority {
   urgent
 }
 
+enum UnitOccupancyType {
+  owner
+  tenant
+  resident
+}
+
+enum AccessStatus {
+  scheduled
+  checked_in
+  checked_out
+  cancelled
+}
+
+enum PackageStatus {
+  received
+  notified
+  delivered
+  returned
+}
+
+enum DocumentType {
+  regulation
+  convention
+  minutes
+  contract
+  report
+  manual
+  financial
+  other
+}
+
+enum MaintenanceStatus {
+  open
+  quoted
+  scheduled
+  in_progress
+  completed
+  cancelled
+}
+
+enum AssemblyStatus {
+  draft
+  scheduled
+  open
+  closed
+  archived
+}
+
 model User {
   id                   String           @id @default(uuid())
   name                 String
@@ -57,6 +105,7 @@ model User {
   cpf                  String?          @unique
   apartment            String?
   parkingSpaces        String[]         @default([])
+  active               Boolean          @default(true)
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @default(now()) @updatedAt
   reservations         Reservation[]
@@ -67,6 +116,101 @@ model User {
   auditLogs            AuditLog[]
   aiConversations      AiConversation[]
   chatMessages         ChatMessage[]
+  ownedUnits           Unit[]           @relation("UnitOwner")
+  residentProfiles     UnitResident[]
+  vehicles             Vehicle[]
+  pets                 Pet[]
+  visitorAccesses      VisitorAccess[]
+  pickedPackages       PackageDelivery[] @relation("PackagePickup")
+  occurrenceComments   OccurrenceComment[]
+  maintenanceOrders    MaintenanceOrder[] @relation("MaintenanceRequester")
+  assemblyVotes        AssemblyVote[]
+}
+
+model CondominiumSettings {
+  id        String   @id @default("main")
+  name      String?
+  cnpj      String?
+  address   String?
+  phone     String?
+  email     String?
+  totalUnits Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model Unit {
+  id             String          @id @default(uuid())
+  block          String?
+  number         String
+  floor          String?
+  fraction       Float?
+  ownerId        String?
+  notes          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @default(now()) @updatedAt
+  owner          User?           @relation("UnitOwner", fields: [ownerId], references: [id])
+  residents      UnitResident[]
+  parkingSpaces  ParkingSpace[]
+  visitorAccesses VisitorAccess[]
+  packageDeliveries PackageDelivery[]
+
+  @@unique([block, number])
+  @@index([ownerId])
+}
+
+model UnitResident {
+  id        String            @id @default(uuid())
+  unitId    String
+  userId    String
+  type      UnitOccupancyType @default(resident)
+  isPrimary Boolean           @default(false)
+  createdAt DateTime          @default(now())
+  unit      Unit              @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([unitId, userId])
+  @@index([userId])
+}
+
+model ParkingSpace {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  unitId    String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  unit      Unit?    @relation(fields: [unitId], references: [id])
+
+  @@index([unitId])
+}
+
+model Vehicle {
+  id        String   @id @default(uuid())
+  userId    String
+  plate     String   @unique
+  model     String?
+  color     String?
+  parkingSpace String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Pet {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  species   String
+  breed     String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model CommonArea {
@@ -152,9 +296,126 @@ model Occurrence {
   updatedAt   DateTime           @default(now()) @updatedAt
   reporter    User               @relation("OccurrenceReporter", fields: [reporterId], references: [id])
   assignee    User?              @relation("OccurrenceAssignee", fields: [assigneeId], references: [id])
+  comments    OccurrenceComment[]
 
   @@index([reporterId])
   @@index([status])
+}
+
+model OccurrenceComment {
+  id           String     @id @default(uuid())
+  occurrenceId String
+  authorId     String
+  content      String
+  createdAt    DateTime   @default(now())
+  occurrence   Occurrence @relation(fields: [occurrenceId], references: [id], onDelete: Cascade)
+  author       User       @relation(fields: [authorId], references: [id])
+
+  @@index([occurrenceId])
+  @@index([authorId])
+}
+
+model VisitorAccess {
+  id          String       @id @default(uuid())
+  unitId      String?
+  residentId  String?
+  visitorName String
+  document    String?
+  phone       String?
+  purpose     String?
+  company     String?
+  expectedAt  DateTime?
+  checkedInAt DateTime?
+  checkedOutAt DateTime?
+  status      AccessStatus @default(scheduled)
+  notes       String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @default(now()) @updatedAt
+  unit        Unit?        @relation(fields: [unitId], references: [id])
+  resident    User?        @relation(fields: [residentId], references: [id])
+
+  @@index([unitId])
+  @@index([residentId])
+  @@index([status])
+}
+
+model PackageDelivery {
+  id            String        @id @default(uuid())
+  unitId         String?
+  recipientName  String
+  carrier        String?
+  trackingCode   String?
+  receivedAt     DateTime      @default(now())
+  deliveredAt    DateTime?
+  pickedUpById   String?
+  status         PackageStatus @default(received)
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @default(now()) @updatedAt
+  unit           Unit?         @relation(fields: [unitId], references: [id])
+  pickedUpBy     User?         @relation("PackagePickup", fields: [pickedUpById], references: [id])
+
+  @@index([unitId])
+  @@index([status])
+}
+
+model Document {
+  id          String       @id @default(uuid())
+  title       String
+  type        DocumentType @default(other)
+  description String?
+  fileUrl     String?
+  content     String?
+  visibleToResidents Boolean @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @default(now()) @updatedAt
+}
+
+model MaintenanceOrder {
+  id          String            @id @default(uuid())
+  title       String
+  description String
+  category    String
+  location    String?
+  vendor      String?
+  estimatedCost Float?
+  scheduledAt DateTime?
+  completedAt DateTime?
+  status      MaintenanceStatus @default(open)
+  requesterId String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @default(now()) @updatedAt
+  requester   User?             @relation("MaintenanceRequester", fields: [requesterId], references: [id])
+
+  @@index([status])
+  @@index([requesterId])
+}
+
+model Assembly {
+  id          String         @id @default(uuid())
+  title       String
+  description String?
+  scheduledAt DateTime
+  location    String?
+  agenda      String?
+  status      AssemblyStatus @default(scheduled)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @default(now()) @updatedAt
+  votes       AssemblyVote[]
+}
+
+model AssemblyVote {
+  id         String   @id @default(uuid())
+  assemblyId String
+  userId     String
+  option     String
+  comment    String?
+  createdAt  DateTime @default(now())
+  assembly   Assembly @relation(fields: [assemblyId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@unique([assemblyId, userId])
+  @@index([userId])
 }
 
 model AuditLog {

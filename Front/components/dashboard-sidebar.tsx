@@ -16,6 +16,15 @@ import {
   Bell,
   X,
   Sparkles,
+  UserCog,
+  PanelLeftClose,
+  PanelLeftOpen,
+  FileText,
+  Wrench,
+  Vote,
+  ShieldCheck,
+  BarChart3,
+  History,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
@@ -43,6 +52,16 @@ const adminNavigation = [
     icon: Building2,
   },
   {
+    name: "Estrutura",
+    href: "/estrutura",
+    icon: Building2,
+  },
+  {
+    name: "Portaria",
+    href: "/portaria",
+    icon: ShieldCheck,
+  },
+  {
     name: "Usuários",
     href: "/usuarios",
     icon: UserPlus,
@@ -63,9 +82,39 @@ const adminNavigation = [
     icon: Bell,
   },
   {
+    name: "Documentos",
+    href: "/documentos",
+    icon: FileText,
+  },
+  {
+    name: "Manutenção",
+    href: "/manutencao",
+    icon: Wrench,
+  },
+  {
+    name: "Assembleias",
+    href: "/assembleias",
+    icon: Vote,
+  },
+  {
+    name: "Relatórios",
+    href: "/relatorios",
+    icon: BarChart3,
+  },
+  {
+    name: "Auditoria",
+    href: "/auditoria",
+    icon: History,
+  },
+  {
     name: "Chatbot / IA",
     href: "/chatbot",
     icon: MessageSquare,
+  },
+  {
+    name: "Minha Conta",
+    href: "/conta",
+    icon: UserCog,
   },
   {
     name: "Configurações",
@@ -91,9 +140,39 @@ const moradorNavigation = [
     icon: Bell,
   },
   {
+    name: "Documentos",
+    href: "/documentos",
+    icon: FileText,
+  },
+  {
+    name: "Ocorrências",
+    href: "/ocorrencias",
+    icon: AlertCircle,
+  },
+  {
+    name: "Portaria",
+    href: "/portaria",
+    icon: ShieldCheck,
+  },
+  {
+    name: "Manutenção",
+    href: "/manutencao",
+    icon: Wrench,
+  },
+  {
+    name: "Assembleias",
+    href: "/assembleias",
+    icon: Vote,
+  },
+  {
     name: "Chatbot / IA",
     href: "/chatbot",
     icon: MessageSquare,
+  },
+  {
+    name: "Minha Conta",
+    href: "/conta",
+    icon: UserCog,
   },
 ]
 
@@ -113,9 +192,11 @@ const limpezaNavigation = [
 interface DashboardSidebarProps {
   isOpen?: boolean
   onClose?: () => void
+  isCollapsed?: boolean
+  onToggleCollapse?: () => void
 }
 
-export function DashboardSidebar({ isOpen = false, onClose }: DashboardSidebarProps) {
+export function DashboardSidebar({ isOpen = false, onClose, isCollapsed = false, onToggleCollapse }: DashboardSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { toast } = useToast()
@@ -163,20 +244,21 @@ export function DashboardSidebar({ isOpen = false, onClose }: DashboardSidebarPr
 
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 h-screen w-64 border-r border-sidebar-border bg-sidebar transition-transform duration-300 ease-in-out lg:translate-x-0",
+          "fixed left-0 top-0 z-50 h-screen border-r border-sidebar-border bg-sidebar transition-all duration-300 ease-in-out lg:translate-x-0",
+          isCollapsed ? "w-20" : "w-64",
           isOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
         <div className="flex h-full flex-col">
           {/* Logo */}
-          <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6">
-            <Button variant="ghost" size="icon" className="lg:hidden -ml-2" onClick={onClose}>
+          <div className={cn("flex h-16 items-center gap-3 border-b border-sidebar-border px-4", !isCollapsed && "lg:px-6")}>
+            <Button variant="ghost" size="icon" className="lg:hidden -ml-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" onClick={onClose}>
               <X className="h-5 w-5" />
             </Button>
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
               <Building2 className="h-6 w-6 text-primary-foreground" />
             </div>
-            <div className="flex-1 min-w-0">
+            <div className={cn("flex-1 min-w-0", isCollapsed && "hidden")}>
               <h1 className="text-lg font-semibold text-sidebar-foreground truncate">Síndico de IA</h1>
               <p className="text-xs text-muted-foreground truncate">
                 {userRole === "admin"
@@ -186,6 +268,18 @@ export function DashboardSidebar({ isOpen = false, onClose }: DashboardSidebarPr
                     : "Portal do Morador"}
               </p>
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "hidden text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground lg:inline-flex",
+                isCollapsed && "mx-auto",
+              )}
+              onClick={onToggleCollapse}
+            >
+              {isCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+              <span className="sr-only">Alternar menu lateral</span>
+            </Button>
           </div>
 
           {/* Navigation */}
@@ -199,13 +293,15 @@ export function DashboardSidebar({ isOpen = false, onClose }: DashboardSidebarPr
                   onClick={() => onClose?.()}
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                    isCollapsed && "justify-center px-2",
                     isActive
                       ? "bg-sidebar-primary text-sidebar-primary-foreground"
                       : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                   )}
+                  title={isCollapsed ? item.name : undefined}
                 >
                   <item.icon className="h-5 w-5 flex-shrink-0" />
-                  <span className="truncate">{item.name}</span>
+                  <span className={cn("truncate", isCollapsed && "hidden")}>{item.name}</span>
                 </Link>
               )
             })}
@@ -213,11 +309,11 @@ export function DashboardSidebar({ isOpen = false, onClose }: DashboardSidebarPr
 
           {/* Footer */}
           <div className="border-t border-sidebar-border p-4 space-y-3">
-            <div className="flex items-center gap-3 rounded-lg bg-sidebar-accent p-3">
+            <div className={cn("flex items-center gap-3 rounded-lg bg-sidebar-accent p-3", isCollapsed && "justify-center p-2")}>
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground flex-shrink-0">
                 {getUserInitials()}
               </div>
-              <div className="flex-1 min-w-0">
+              <div className={cn("flex-1 min-w-0", isCollapsed && "hidden")}>
                 <p className="text-sm font-medium text-sidebar-foreground truncate">{userName}</p>
                 <p className="text-xs text-muted-foreground truncate">
                   {userUnit ? `${userUnit} • ${userEmail}` : userEmail}
@@ -225,13 +321,17 @@ export function DashboardSidebar({ isOpen = false, onClose }: DashboardSidebarPr
               </div>
             </div>
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
-              className="w-full justify-start gap-2 bg-transparent"
+              className={cn(
+                "w-full justify-start gap-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                isCollapsed && "justify-center px-2",
+              )}
               onClick={handleLogout}
+              title="Sair"
             >
               <LogOut className="h-4 w-4" />
-              Sair
+              <span className={cn(isCollapsed && "hidden")}>Sair</span>
             </Button>
           </div>
         </div>

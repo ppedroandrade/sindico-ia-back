@@ -35,7 +35,7 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
         if (user.apartment) localStorage.setItem("userUnit", user.apartment)
         else localStorage.removeItem("userUnit")
 
-        const adminOnlyRoutes = ["/", "/usuarios", "/ocorrencias", "/configuracoes", "/limpeza/relatorios"]
+        const adminOnlyRoutes = ["/", "/usuarios", "/estrutura", "/relatorios", "/auditoria", "/configuracoes", "/limpeza/relatorios"]
         const isAdminRoute = adminOnlyRoutes.some((route) =>
           route === "/" ? pathname === "/" : pathname.startsWith(route),
         )

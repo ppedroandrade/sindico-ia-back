@@ -1,116 +1,106 @@
 "use client"
 
-import { useState } from "react"
+import type React from "react"
+import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Button } from "@/components/ui/button"
+import { ApiError, apiRequest } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 
 export function GeneralSettings() {
-  const { toast } = useToast()
-  const [isSaving, setIsSaving] = useState(false)
-
-  const [formData, setFormData] = useState({
+  const [form, setForm] = useState({
     name: "",
     cnpj: "",
-    units: "",
-    phone: "",
     address: "",
+    phone: "",
+    email: "",
+    totalUnits: "",
   })
+  const [isSaving, setIsSaving] = useState(false)
+  const { toast } = useToast()
 
-  const handleSave = () => {
-    setIsSaving(true)
-    setTimeout(() => {
-      toast({
-        title: "Configurações salvas!",
-        description: "As alterações foram aplicadas com sucesso.",
+  useEffect(() => {
+    async function loadSettings() {
+      const settings = (await apiRequest("/operations/settings")) as any
+      setForm({
+        name: settings.name ?? "",
+        cnpj: settings.cnpj ?? "",
+        address: settings.address ?? "",
+        phone: settings.phone ?? "",
+        email: settings.email ?? "",
+        totalUnits: settings.totalUnits ? String(settings.totalUnits) : "",
       })
-      setIsSaving(false)
-    }, 1000)
-  }
+    }
 
-  const handleCancel = () => {
-    setFormData({
-      name: "",
-      cnpj: "",
-      units: "",
-      phone: "",
-      address: "",
-    })
-    toast({
-      title: "Alterações descartadas",
-      description: "Os valores foram restaurados.",
-    })
+    loadSettings().catch(() => undefined)
+  }, [])
+
+  const save = async (event: React.FormEvent) => {
+    event.preventDefault()
+    setIsSaving(true)
+    try {
+      await apiRequest("/operations/settings", {
+        method: "PATCH",
+        body: JSON.stringify({
+          ...form,
+          totalUnits: form.totalUnits ? Number(form.totalUnits) : undefined,
+        }),
+      })
+      toast({ title: "Configurações salvas" })
+    } catch (err) {
+      toast({
+        title: "Erro ao salvar",
+        description: err instanceof ApiError ? err.message : "Tente novamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
-    <Card className="p-6">
-      <div className="space-y-6">
+    <Card className="p-5 md:p-6">
+      <form onSubmit={save} className="space-y-5">
         <div>
-          <h3 className="text-lg font-semibold">Informações Gerais</h3>
-          <p className="text-sm text-muted-foreground">Dados básicos do condomínio</p>
+          <h3 className="text-lg font-semibold">Informações gerais</h3>
+          <p className="text-sm text-muted-foreground">Dados persistidos no backend</p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="condo-name">Nome do Condomínio</Label>
-            <Input
-              id="condo-name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            />
+            <Label>Nome do condomínio</Label>
+            <Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
           </div>
-
           <div className="space-y-2">
-            <Label htmlFor="condo-cnpj">CNPJ</Label>
-            <Input
-              id="condo-cnpj"
-              value={formData.cnpj}
-              onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
-            />
+            <Label>CNPJ</Label>
+            <Input value={form.cnpj} onChange={(event) => setForm({ ...form, cnpj: event.target.value })} />
           </div>
-
           <div className="space-y-2">
-            <Label htmlFor="condo-units">Total de Unidades</Label>
-            <Input
-              id="condo-units"
-              type="number"
-              value={formData.units}
-              onChange={(e) => setFormData({ ...formData, units: e.target.value })}
-            />
+            <Label>Total de unidades</Label>
+            <Input type="number" value={form.totalUnits} onChange={(event) => setForm({ ...form, totalUnits: event.target.value })} />
           </div>
-
           <div className="space-y-2">
-            <Label htmlFor="condo-phone">Telefone</Label>
-            <Input
-              id="condo-phone"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-            />
+            <Label>Telefone</Label>
+            <Input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Email</Label>
+            <Input value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="condo-address">Endereço Completo</Label>
-          <Textarea
-            id="condo-address"
-            value={formData.address}
-            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-            rows={3}
-          />
+          <Label>Endereço completo</Label>
+          <Textarea rows={3} value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} />
         </div>
 
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={handleCancel}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? "Salvando..." : "Salvar Alterações"}
-          </Button>
+        <div className="flex justify-end">
+          <Button type="submit" disabled={isSaving}>{isSaving ? "Salvando..." : "Salvar configurações"}</Button>
         </div>
-      </div>
+      </form>
     </Card>
   )
 }

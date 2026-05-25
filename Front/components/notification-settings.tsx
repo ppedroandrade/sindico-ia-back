@@ -61,7 +61,7 @@ export function NotificationSettings() {
                 </Label>
                 <p className="text-sm text-muted-foreground mt-1">{notification.description}</p>
               </div>
-              <Switch id={notification.id} defaultChecked={notification.enabled} />
+              <Switch id={notification.id} defaultChecked={notification.enabled} disabled />
             </div>
           ))}
         </div>

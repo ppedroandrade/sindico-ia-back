@@ -35,6 +35,14 @@ export class ReservationsService {
     return parsed;
   }
 
+  private getDayRange(date: Date) {
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
+  }
+
   private getTotalPrice(startTime: Date, endTime: Date, pricePerHour: number) {
     const durationMs = endTime.getTime() - startTime.getTime();
     if (durationMs <= 0) {
@@ -60,15 +68,15 @@ export class ReservationsService {
       throw new BadRequestException('Número de convidados excede a capacidade da área');
     }
 
-    const overlapping = await this.prisma.reservation.findFirst({
+    const { start: dayStart, end: dayEnd } = this.getDayRange(date);
+    const sameDayReservation = await this.prisma.reservation.findFirst({
       where: {
         areaId: data.areaId,
         status: { in: [ReservationStatus.pending, ReservationStatus.confirmed] },
-        startTime: { lt: endTime },
-        endTime: { gt: startTime },
+        date: { gte: dayStart, lte: dayEnd },
       },
     });
-    if (overlapping) throw new BadRequestException('Já existe reserva nesse horário');
+    if (sameDayReservation) throw new BadRequestException('Já existe solicitação de reserva para essa área neste dia');
 
     return this.prisma.reservation.create({
       data: {
@@ -109,7 +117,7 @@ export class ReservationsService {
   }
 
   async update(id: string, data: UpdateReservationDto) {
-    await this.findOne(id);
+    const current = await this.findOne(id);
     const startTime = data.startTime ? this.toDate(data.startTime) : undefined;
     const endTime = data.endTime ? this.toDate(data.endTime) : undefined;
     const date = data.date ? this.toDate(data.date) : undefined;
@@ -117,6 +125,21 @@ export class ReservationsService {
       ? await this.prisma.commonArea.findUnique({ where: { id: data.areaId } })
       : undefined;
     if (data.areaId && !area) throw new NotFoundException('Área comum não encontrada');
+
+    const nextDate = date ?? current.date;
+    const nextAreaId = data.areaId ?? current.areaId;
+    const { start: dayStart, end: dayEnd } = this.getDayRange(nextDate);
+    const sameDayReservation = await this.prisma.reservation.findFirst({
+      where: {
+        id: { not: id },
+        areaId: nextAreaId,
+        status: { in: [ReservationStatus.pending, ReservationStatus.confirmed] },
+        date: { gte: dayStart, lte: dayEnd },
+      },
+    });
+    if (sameDayReservation) {
+      throw new BadRequestException('Já existe solicitação de reserva para essa área neste dia');
+    }
 
     const { status, observations, userId, areaId, guests } = data;
     return this.prisma.reservation.update({
@@ -153,6 +176,19 @@ export class ReservationsService {
     return this.prisma.reservation.update({
       where: { id },
       data: { status: ReservationStatus.cancelled },
+      include: this.reservationInclude,
+    });
+  }
+
+  async updateStatus(id: string, status: string) {
+    if (!Object.values(ReservationStatus).includes(status as ReservationStatus)) {
+      throw new BadRequestException('Status de reserva inválido');
+    }
+
+    await this.findOne(id);
+    return this.prisma.reservation.update({
+      where: { id },
+      data: { status: status as ReservationStatus },
       include: this.reservationInclude,
     });
   }

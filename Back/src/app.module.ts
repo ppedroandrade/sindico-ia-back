@@ -9,6 +9,8 @@ import { OccurrencesModule } from './occurrences/occurrences.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { AiModule } from './ai/ai.module';
 import { UsersModule } from './users/users.module';
+import { PaymentsModule } from './payments/payments.module';
+import { OperationsModule } from './operations/operations.module';
 
 @Module({
   imports: [
@@ -21,6 +23,8 @@ import { UsersModule } from './users/users.module';
     DashboardModule,
     AiModule,
     UsersModule,
+    PaymentsModule,
+    OperationsModule,
   ],
   providers: [PrismaService],
 })

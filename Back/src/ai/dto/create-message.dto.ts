@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MinLength } from 'class-validator';
+import { IsIn, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class CreateMessageDto {
   @IsOptional()
@@ -8,4 +8,9 @@ export class CreateMessageDto {
   @IsString()
   @MinLength(1)
   content: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['user', 'assistant'])
+  role?: 'user' | 'assistant';
 }
