@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ApiError, apiRequest, type Payment, type User } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
+import { useCurrentUser } from "@/components/auth-context"
+import { formatCurrency } from "@/lib/format"
 import { CreditCard, DollarSign, Plus } from "lucide-react"
 
 type PaymentForm = {
@@ -31,7 +33,8 @@ const initialForm: PaymentForm = {
 }
 
 export default function FinanceiroPage() {
-  const [userRole, setUserRole] = useState<string>("")
+  const currentUser = useCurrentUser()
+  const userRole = currentUser?.role ?? ""
   const [payments, setPayments] = useState<Payment[]>([])
   const [residents, setResidents] = useState<User[]>([])
   const [form, setForm] = useState(initialForm)
@@ -49,7 +52,7 @@ export default function FinanceiroPage() {
       const loadedPayments = (await apiRequest("/payments")) as Payment[]
       setPayments(loadedPayments)
       setReport(await apiRequest("/payments/report"))
-      if ((localStorage.getItem("userRole") || "") === "admin") {
+      if (userRole === "admin") {
         const users = (await apiRequest("/users")) as User[]
         setResidents(users.filter((user) => user.role === "morador" && user.active !== false))
       }
@@ -61,9 +64,9 @@ export default function FinanceiroPage() {
   }
 
   useEffect(() => {
-    setUserRole(localStorage.getItem("userRole") || "")
+    if (!currentUser) return
     loadData()
-  }, [])
+  }, [currentUser])
 
   const totals = useMemo(() => {
     return payments.reduce(
@@ -165,11 +168,11 @@ export default function FinanceiroPage() {
         <div className="grid gap-4 md:grid-cols-3">
           <Card className="p-5">
             <p className="text-sm text-muted-foreground">Total pendente</p>
-            <p className="mt-2 text-2xl font-semibold">R$ {totals.pending.toFixed(2)}</p>
+            <p className="mt-2 text-2xl font-semibold">{formatCurrency(totals.pending)}</p>
           </Card>
           <Card className="p-5">
             <p className="text-sm text-muted-foreground">Total recebido</p>
-            <p className="mt-2 text-2xl font-semibold">R$ {totals.paid.toFixed(2)}</p>
+            <p className="mt-2 text-2xl font-semibold">{formatCurrency(totals.paid)}</p>
           </Card>
           <Card className="p-5">
             <p className="text-sm text-muted-foreground">Cobranças</p>
@@ -265,19 +268,19 @@ export default function FinanceiroPage() {
           <div className="grid gap-4 md:grid-cols-4">
             <div className="rounded-lg border p-4">
               <p className="text-sm text-muted-foreground">Total</p>
-              <p className="mt-2 text-xl font-semibold">R$ {(report?.summary?.total ?? 0).toFixed(2)}</p>
+              <p className="mt-2 text-xl font-semibold">{formatCurrency(report?.summary?.total)}</p>
             </div>
             <div className="rounded-lg border p-4">
               <p className="text-sm text-muted-foreground">Pago</p>
-              <p className="mt-2 text-xl font-semibold">R$ {(report?.summary?.paid ?? 0).toFixed(2)}</p>
+              <p className="mt-2 text-xl font-semibold">{formatCurrency(report?.summary?.paid)}</p>
             </div>
             <div className="rounded-lg border p-4">
               <p className="text-sm text-muted-foreground">Pendente</p>
-              <p className="mt-2 text-xl font-semibold">R$ {(report?.summary?.pending ?? 0).toFixed(2)}</p>
+              <p className="mt-2 text-xl font-semibold">{formatCurrency(report?.summary?.pending)}</p>
             </div>
             <div className="rounded-lg border p-4">
               <p className="text-sm text-muted-foreground">Vencido</p>
-              <p className="mt-2 text-xl font-semibold">R$ {(report?.summary?.overdue ?? 0).toFixed(2)}</p>
+              <p className="mt-2 text-xl font-semibold">{formatCurrency(report?.summary?.overdue)}</p>
             </div>
           </div>
           {userRole === "admin" && report?.defaulters?.length > 0 && (
@@ -287,7 +290,7 @@ export default function FinanceiroPage() {
                 {report.defaulters.slice(0, 8).map((item: any) => (
                   <div key={item.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
                     <span>{item.user?.name ?? "Morador"} - {new Date(item.dueDate).toLocaleDateString("pt-BR")}</span>
-                    <span className="font-medium">R$ {Number(item.amount).toFixed(2)}</span>
+                    <span className="font-medium">{formatCurrency(Number(item.amount))}</span>
                   </div>
                 ))}
               </div>
@@ -325,9 +328,9 @@ export default function FinanceiroPage() {
                     {userRole === "admin" && <TableCell>{payment.user?.name ?? "-"}</TableCell>}
                     <TableCell>{payment.type}</TableCell>
                     <TableCell>{new Date(payment.dueDate).toLocaleDateString("pt-BR")}</TableCell>
-                    <TableCell>R$ {payment.amount.toFixed(2)}</TableCell>
+                    <TableCell>{formatCurrency(payment.amount)}</TableCell>
                     <TableCell>
-                      <Badge variant={payment.status === "paid" ? "default" : "outline"}>
+                      <Badge variant={payment.status === "paid" ? "success" : "warning"}>
                         {payment.status === "paid" ? "Pago" : "Pendente"}
                       </Badge>
                     </TableCell>

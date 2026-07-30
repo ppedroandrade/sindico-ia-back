@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card } from "@/components/ui/card"
 import { apiRequest } from "@/lib/api"
+import { formatCurrency } from "@/lib/format"
 
 export default function RelatoriosPage() {
   const [dashboard, setDashboard] = useState<any>(null)
@@ -60,7 +61,7 @@ export default function RelatoriosPage() {
             {Object.entries(financial?.summary ?? {}).map(([key, value]) => (
               <div key={key} className="flex justify-between border-b py-2 text-sm last:border-0">
                 <span className="text-muted-foreground">{key}</span>
-                <span className="font-medium">R$ {Number(value).toFixed(2)}</span>
+                <span className="font-medium">{formatCurrency(Number(value))}</span>
               </div>
             ))}
           </Card>

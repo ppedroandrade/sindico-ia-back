@@ -85,8 +85,8 @@ export function ReservationsList({ reservations, areas, onConfirm, onCancel, onE
   }
 
   const statusConfig = {
-    confirmed: { label: "Confirmada", className: "bg-accent/10 text-accent border-accent/20" },
-    pending: { label: "Pendente", className: "bg-primary/10 text-primary border-primary/20" },
+    confirmed: { label: "Confirmada", className: "bg-success/10 text-success border-success/20" },
+    pending: { label: "Pendente", className: "bg-warning/10 text-warning-foreground border-warning/30" },
     completed: { label: "Concluída", className: "bg-muted text-muted-foreground border-border" },
     cancelled: {
       label: "Cancelada",

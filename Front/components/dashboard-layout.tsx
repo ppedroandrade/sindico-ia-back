@@ -20,7 +20,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           isCollapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed((current) => !current)}
         />
-        <div className={sidebarCollapsed ? "lg:pl-20" : "lg:pl-64"}>
+        <div className={sidebarCollapsed ? "lg:pl-20" : "lg:pl-72"}>
           <DashboardHeader onMenuClick={() => setSidebarOpen(true)} />
           <main className="p-4 md:p-6">{children}</main>
         </div>

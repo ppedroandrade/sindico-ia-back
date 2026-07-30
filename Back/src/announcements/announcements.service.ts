@@ -8,6 +8,14 @@ import { JwtUser } from '../auth/user-request.interface';
 export class AnnouncementsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private readonly safeAuthorSelect = {
+    id: true,
+    name: true,
+    email: true,
+    role: true,
+    apartment: true,
+  };
+
   create(data: CreateAnnouncementDto, user: JwtUser) {
     return this.prisma.announcement.create({
       data: {
@@ -17,13 +25,13 @@ export class AnnouncementsService {
         publishAt: data.publishAt ? new Date(data.publishAt) : new Date(),
         authorId: user.userId,
       },
-      include: { author: true },
+      include: { author: { select: this.safeAuthorSelect } },
     });
   }
 
   findAll() {
     return this.prisma.announcement.findMany({
-      include: { author: true },
+      include: { author: { select: this.safeAuthorSelect } },
       orderBy: [{ publishAt: 'desc' }, { createdAt: 'desc' }],
     });
   }
@@ -31,7 +39,7 @@ export class AnnouncementsService {
   async findOne(id: string) {
     const announcement = await this.prisma.announcement.findUnique({
       where: { id },
-      include: { author: true },
+      include: { author: { select: this.safeAuthorSelect } },
     });
     if (!announcement) throw new NotFoundException('Aviso não encontrado');
     return announcement;
@@ -47,7 +55,7 @@ export class AnnouncementsService {
         type: data.type,
         publishAt: data.publishAt ? new Date(data.publishAt) : undefined,
       },
-      include: { author: true },
+      include: { author: { select: this.safeAuthorSelect } },
     });
   }
 

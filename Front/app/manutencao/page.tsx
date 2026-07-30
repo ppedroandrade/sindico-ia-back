@@ -2,6 +2,7 @@
 
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { OperationsCrud, StatusBadge } from "@/components/operations-crud"
+import { formatCurrency } from "@/lib/format"
 
 export default function ManutencaoPage() {
   return (
@@ -31,7 +32,7 @@ export default function ManutencaoPage() {
             { key: "location", label: "Local" },
             { key: "vendor", label: "Prestador" },
             { key: "status", label: "Status", render: (item) => <StatusBadge value={item.status} /> },
-            { key: "estimatedCost", label: "Custo", render: (item) => item.estimatedCost ? `R$ ${Number(item.estimatedCost).toFixed(2)}` : "-" },
+            { key: "estimatedCost", label: "Custo", render: (item) => item.estimatedCost ? formatCurrency(Number(item.estimatedCost)) : "-" },
           ]}
         />
       </div>

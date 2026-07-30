@@ -10,11 +10,13 @@ import { ApiError, apiRequest, type CommonArea, type Reservation, type Reservati
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
+import { useCurrentUser } from "@/components/auth-context"
 
 export type { Reservation } from "@/lib/api"
 
 export default function ReservasPage() {
-  const [userRole, setUserRole] = useState<string>("")
+  const currentUser = useCurrentUser()
+  const userRole = currentUser?.role ?? ""
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [areas, setAreas] = useState<CommonArea[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -40,7 +42,6 @@ export default function ReservasPage() {
   }
 
   useEffect(() => {
-    setUserRole(localStorage.getItem("userRole") || "")
     loadData(true)
     const interval = window.setInterval(() => loadData(false), 5000)
     return () => window.clearInterval(interval)

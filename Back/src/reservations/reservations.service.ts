@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { UpdateReservationDto } from './dto/update-reservation.dto';
@@ -195,6 +195,13 @@ export class ReservationsService {
 
   async remove(id: string) {
     await this.findOne(id);
-    return this.prisma.reservation.delete({ where: { id } });
+    try {
+      return await this.prisma.reservation.delete({ where: { id } });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+        throw new ConflictException('Não é possível excluir esta reserva pois existem registros vinculados a ela.');
+      }
+      throw error;
+    }
   }
 }

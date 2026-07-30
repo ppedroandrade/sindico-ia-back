@@ -3,6 +3,7 @@
 import { Card } from "@/components/ui/card"
 import { MapPin } from "lucide-react"
 import type { CommonArea } from "@/lib/api"
+import { formatCurrency } from "@/lib/format"
 
 export function CommonAreas({ areas }: { areas: CommonArea[] }) {
   return (
@@ -36,7 +37,7 @@ export function CommonAreas({ areas }: { areas: CommonArea[] }) {
                   )}
                 </div>
                 <div className="flex items-center justify-between pt-2 border-t">
-                  <span className="text-xs font-semibold text-primary">R$ {area.pricePerHour.toFixed(2)}/h</span>
+                  <span className="text-xs font-semibold text-primary">{formatCurrency(area.pricePerHour)}/h</span>
                   <span className="text-xs text-muted-foreground">{area.reservations?.length ?? 0} reservas</span>
                 </div>
               </div>

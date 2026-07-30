@@ -3,14 +3,10 @@
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { AdminAnnouncements } from "@/components/admin-announcements"
 import { ResidentAnnouncements } from "@/components/resident-announcements"
-import { useEffect, useState } from "react"
+import { useCurrentUser } from "@/components/auth-context"
 
 export default function AnnouncementsPage() {
-  const [userRole, setUserRole] = useState<string>("")
+  const currentUser = useCurrentUser()
 
-  useEffect(() => {
-    setUserRole(localStorage.getItem("userRole") || "")
-  }, [])
-
-  return <DashboardLayout>{userRole === "admin" ? <AdminAnnouncements /> : <ResidentAnnouncements />}</DashboardLayout>
+  return <DashboardLayout>{currentUser?.role === "admin" ? <AdminAnnouncements /> : <ResidentAnnouncements />}</DashboardLayout>
 }

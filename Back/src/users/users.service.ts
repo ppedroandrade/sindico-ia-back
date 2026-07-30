@@ -1,4 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -117,10 +118,19 @@ export class UsersService {
 
   async remove(id: string) {
     await this.ensureExists(id);
-    return this.prisma.user.delete({
-      where: { id },
-      select: this.selectSafeUser,
-    });
+    try {
+      return await this.prisma.user.delete({
+        where: { id },
+        select: this.selectSafeUser,
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+        throw new ConflictException(
+          'Não é possível excluir este usuário pois existem registros vinculados a ele (reservas, pagamentos, ocorrências, etc). Desative o usuário em vez de excluí-lo.',
+        );
+      }
+      throw error;
+    }
   }
 
   private async ensureExists(id: string) {

@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ApiError, apiRequest, type AreaItem, type CommonArea } from "@/lib/api"
+import { formatCurrency } from "@/lib/format"
 
 export default function CommonAreasPage() {
   const { toast } = useToast()
@@ -158,7 +159,7 @@ export default function CommonAreasPage() {
                       <h3 className="font-semibold text-lg">{area.name}</h3>
                       <p className="text-sm text-muted-foreground">{area.capacity} pessoas</p>
                     </div>
-                    <Badge variant={area.available ? "default" : "secondary"}>
+                    <Badge variant={area.available ? "success" : "secondary"}>
                       {area.available ? "Disponível" : "Indisponível"}
                     </Badge>
                   </div>
@@ -166,7 +167,7 @@ export default function CommonAreasPage() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Valor por hora:</span>
-                      <span className="font-semibold">R$ {area.pricePerHour.toFixed(2)}</span>
+                      <span className="font-semibold">{formatCurrency(area.pricePerHour)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Itens cadastrados:</span>
@@ -290,7 +291,7 @@ export default function CommonAreasPage() {
                       <TableRow key={item.id}>
                         <TableCell className="font-medium">{item.name}</TableCell>
                         <TableCell className="text-right">{item.quantity}</TableCell>
-                        <TableCell className="text-right">R$ {item.unitPrice.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="sm" onClick={() => handleDeleteItem(item.id)}>
                             <Trash2 className="h-4 w-4" />

@@ -1,5 +1,5 @@
 // lib/api.ts
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
+export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "/api").replace(/\/$/, "");
 
 export class ApiError extends Error {
   status: number;

@@ -38,6 +38,7 @@ export default function UsuariosPage() {
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
 
@@ -122,16 +123,47 @@ export default function UsuariosPage() {
   const residents = users.filter((user) => user.role === "morador")
 
   const setUserActive = async (userId: string, active: boolean) => {
-    const updated = (await apiRequest(`/users/${userId}/active`, {
-      method: "PATCH",
-      body: JSON.stringify({ active }),
-    })) as User
-    setUsers((current) => current.map((user) => (user.id === userId ? updated : user)))
+    try {
+      const updated = (await apiRequest(`/users/${userId}/active`, {
+        method: "PATCH",
+        body: JSON.stringify({ active }),
+      })) as User
+      setUsers((current) => current.map((user) => (user.id === userId ? updated : user)))
+      toast({
+        title: active ? "Morador ativado" : "Morador desativado",
+        description: `A conta foi ${active ? "ativada" : "desativada"} com sucesso.`,
+      })
+    } catch (err) {
+      toast({
+        title: "Erro ao atualizar status",
+        description: err instanceof ApiError ? err.message : "Não foi possível atualizar o status do usuário.",
+        variant: "destructive",
+      })
+    }
   }
 
   const deleteUser = async (userId: string) => {
-    await apiRequest(`/users/${userId}`, { method: "DELETE" })
-    setUsers((current) => current.filter((user) => user.id !== userId))
+    if (!confirm("Tem certeza que deseja excluir este usuário? Essa ação não pode ser desfeita.")) return
+    setDeletingId(userId)
+    try {
+      await apiRequest(`/users/${userId}`, { method: "DELETE" })
+      setUsers((current) => current.filter((user) => user.id !== userId))
+      toast({
+        title: "Usuário excluído",
+        description: "A conta foi removida com sucesso.",
+      })
+    } catch (err) {
+      toast({
+        title: "Não foi possível excluir",
+        description:
+          err instanceof ApiError
+            ? err.message
+            : "Ocorreu um erro ao excluir o usuário. Tente novamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   return (
@@ -309,7 +341,7 @@ export default function UsuariosPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={resident.active === false ? "secondary" : "default"}>
+                      <Badge variant={resident.active === false ? "secondary" : "success"}>
                         {resident.active === false ? "Inativo" : "Ativo"}
                       </Badge>
                     </TableCell>
@@ -322,8 +354,13 @@ export default function UsuariosPage() {
                         >
                           {resident.active === false ? "Ativar" : "Desativar"}
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => deleteUser(resident.id)}>
-                          Excluir
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => deleteUser(resident.id)}
+                          disabled={deletingId === resident.id}
+                        >
+                          {deletingId === resident.id ? "Excluindo..." : "Excluir"}
                         </Button>
                       </div>
                     </TableCell>

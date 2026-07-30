@@ -1,23 +1,20 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { EmptyState } from "@/components/empty-state"
+import { useCurrentUser } from "@/components/auth-context"
 import { useRouter } from "next/navigation"
 
 export default function LimpezaPage() {
   const router = useRouter()
-  const [userRole, setUserRole] = useState<string>("")
+  const currentUser = useCurrentUser()
 
   useEffect(() => {
-    setUserRole(localStorage.getItem("userRole") || "")
-  }, [])
-
-  useEffect(() => {
-    if (userRole === "admin") {
+    if (currentUser?.role === "admin") {
       router.push("/limpeza/relatorios")
     }
-  }, [userRole, router])
+  }, [currentUser, router])
 
   return (
     <DashboardLayout>

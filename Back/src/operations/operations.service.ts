@@ -1,4 +1,5 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { JwtUser } from '../auth/user-request.interface';
 
@@ -255,7 +256,15 @@ export class OperationsService {
       assemblies: this.prisma.assembly,
     };
     if (!delegates[entity]) throw new BadRequestException('Recurso não pode ser removido');
-    const removed = await delegates[entity].delete({ where: { id } });
+    let removed;
+    try {
+      removed = await delegates[entity].delete({ where: { id } });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+        throw new ConflictException('Não é possível excluir este item pois existem registros vinculados a ele.');
+      }
+      throw error;
+    }
     await this.log(user, 'delete', entity, id);
     return removed;
   }

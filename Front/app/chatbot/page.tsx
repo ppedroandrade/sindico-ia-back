@@ -5,16 +5,12 @@ import { ChatbotStats } from "@/components/chatbot-stats"
 import { ChatbotAnalytics } from "@/components/chatbot-analytics"
 import { ResidentChat } from "@/components/resident-chat"
 import { AdminConversations } from "@/components/admin-conversations"
-import { useEffect, useState } from "react"
+import { useCurrentUser } from "@/components/auth-context"
 
 export default function ChatbotPage() {
-  const [userRole, setUserRole] = useState<string>("")
+  const currentUser = useCurrentUser()
 
-  useEffect(() => {
-    setUserRole(localStorage.getItem("userRole") || "")
-  }, [])
-
-  if (userRole === "morador") {
+  if (currentUser?.role !== "admin") {
     return (
       <DashboardLayout>
         <ResidentChat />

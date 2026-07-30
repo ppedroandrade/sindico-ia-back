@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ApiError, apiRequest, type Occurrence } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
+import { useCurrentUser } from "@/components/auth-context"
 
 const statusLabels: Record<Occurrence["status"], string> = {
   open: "Aberta",
@@ -20,8 +21,30 @@ const statusLabels: Record<Occurrence["status"], string> = {
   cancelled: "Cancelada",
 }
 
+const statusBadgeVariant: Record<Occurrence["status"], "warning" | "default" | "success" | "secondary"> = {
+  open: "warning",
+  in_progress: "default",
+  resolved: "success",
+  cancelled: "secondary",
+}
+
+const priorityBadgeVariant: Record<Occurrence["priority"], "secondary" | "default" | "warning" | "destructive"> = {
+  low: "secondary",
+  medium: "default",
+  high: "warning",
+  urgent: "destructive",
+}
+
+const priorityLabels: Record<Occurrence["priority"], string> = {
+  low: "Baixa",
+  medium: "Média",
+  high: "Alta",
+  urgent: "Urgente",
+}
+
 export default function OcorrenciasPage() {
-  const [userRole, setUserRole] = useState("")
+  const currentUser = useCurrentUser()
+  const userRole = currentUser?.role ?? ""
   const [occurrences, setOccurrences] = useState<Occurrence[]>([])
   const [form, setForm] = useState({
     title: "",
@@ -49,7 +72,6 @@ export default function OcorrenciasPage() {
   }
 
   useEffect(() => {
-    setUserRole(localStorage.getItem("userRole") || "")
     loadOccurrences(true)
     const interval = window.setInterval(() => loadOccurrences(false), 5000)
     return () => window.clearInterval(interval)
@@ -180,8 +202,8 @@ export default function OcorrenciasPage() {
                     <div className="space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-medium">{occurrence.title}</p>
-                        <Badge variant="outline">{statusLabels[occurrence.status]}</Badge>
-                        <Badge variant="secondary">{occurrence.priority}</Badge>
+                        <Badge variant={statusBadgeVariant[occurrence.status]}>{statusLabels[occurrence.status]}</Badge>
+                        <Badge variant={priorityBadgeVariant[occurrence.priority]}>{priorityLabels[occurrence.priority]}</Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">{occurrence.description}</p>
                       <p className="text-xs text-muted-foreground">

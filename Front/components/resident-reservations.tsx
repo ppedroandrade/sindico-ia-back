@@ -13,6 +13,7 @@ import { Calendar, Clock, Users, MapPin, Plus, X, CheckCircle2, AlertCircle } fr
 import { useToast } from "@/hooks/use-toast"
 import { useState, useEffect } from "react"
 import { ApiError, type CommonArea, type Reservation } from "@/lib/api"
+import { formatCurrency } from "@/lib/format"
 
 interface ResidentReservationsProps {
   reservations: Reservation[]
@@ -95,14 +96,14 @@ export function ResidentReservations({ reservations, areas, onNewReservation, on
     switch (status) {
       case "confirmed":
         return (
-          <Badge className="bg-accent text-accent-foreground">
+          <Badge variant="success">
             <CheckCircle2 className="mr-1 h-3 w-3" />
             Confirmada
           </Badge>
         )
       case "pending":
         return (
-          <Badge variant="secondary">
+          <Badge variant="warning">
             <AlertCircle className="mr-1 h-3 w-3" />
             Pendente
           </Badge>
@@ -148,7 +149,7 @@ export function ResidentReservations({ reservations, areas, onNewReservation, on
                       .filter((area) => area.available)
                       .map((area) => (
                       <SelectItem key={area.id} value={area.id}>
-                        {area.name} - R$ {area.pricePerHour.toFixed(2)}/h
+                        {area.name} - {formatCurrency(area.pricePerHour)}/h
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -263,7 +264,7 @@ export function ResidentReservations({ reservations, areas, onNewReservation, on
                 <MapPin className="h-4 w-4 md:h-5 md:w-5 text-primary" />
               </div>
               <h3 className="font-medium text-sm md:text-base">{area.name}</h3>
-              <p className="text-xs md:text-sm text-muted-foreground">R$ {area.pricePerHour.toFixed(2)}/h</p>
+              <p className="text-xs md:text-sm text-muted-foreground">{formatCurrency(area.pricePerHour)}/h</p>
             </div>
           ))}
         </div>

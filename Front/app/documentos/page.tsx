@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ApiError } from "@/lib/api"
+import { API_URL, ApiError } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 
 export default function DocumentosPage() {
@@ -25,14 +25,14 @@ export default function DocumentosPage() {
       const token = localStorage.getItem("token")
       const formData = new FormData()
       formData.append("file", file)
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002"}/operations/documents/upload`, {
+      const response = await fetch(`${API_URL}/operations/documents/upload`, {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: formData,
       })
       const payload = await response.json()
       if (!response.ok) throw new ApiError(payload.message ?? "Erro no upload", response.status, payload)
-      setUploadedUrl(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002"}${payload.fileUrl}`)
+      setUploadedUrl(`${API_URL}${payload.fileUrl}`)
       toast({ title: "Arquivo enviado" })
     } catch (err) {
       toast({

@@ -12,11 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { ApiError, apiRequest } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
+import { useCurrentUser } from "@/components/auth-context"
 
 const statusOptions = ["draft", "scheduled", "open", "closed", "archived"]
 
 export default function AssembleiasPage() {
-  const [role, setRole] = useState("")
+  const currentUser = useCurrentUser()
+  const role = currentUser?.role ?? ""
   const [assemblies, setAssemblies] = useState<any[]>([])
   const [form, setForm] = useState({ title: "", scheduledAt: "", location: "", status: "scheduled", description: "", agenda: "" })
   const [voteForm, setVoteForm] = useState<Record<string, string>>({})
@@ -28,7 +30,6 @@ export default function AssembleiasPage() {
   }
 
   useEffect(() => {
-    setRole(localStorage.getItem("userRole") || "")
     loadAssemblies().catch(() => undefined)
   }, [])
 

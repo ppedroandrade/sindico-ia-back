@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { JwtUser } from '../auth/user-request.interface';
@@ -173,7 +173,14 @@ export class PaymentsService {
 
   async remove(id: string) {
     await this.findOneForAdmin(id);
-    return this.prisma.payment.delete({ where: { id }, include: this.includeUser });
+    try {
+      return await this.prisma.payment.delete({ where: { id }, include: this.includeUser });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+        throw new ConflictException('Não é possível excluir este pagamento pois existem registros vinculados a ele.');
+      }
+      throw error;
+    }
   }
 
   private async findOneForAdmin(id: string) {
