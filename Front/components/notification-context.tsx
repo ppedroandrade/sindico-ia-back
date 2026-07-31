@@ -11,6 +11,7 @@ import {
 } from "react";
 import { AlertTriangle, CheckCircle2, CircleAlert, Info } from "lucide-react";
 import {
+  API_URL,
   apiRequest,
   type Notification,
   type NotificationKind,
@@ -112,6 +113,52 @@ export function NotificationProvider({
       window.clearInterval(interval);
       window.removeEventListener("focus", onFocus);
     };
+  }, [refresh]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const abortController = new AbortController();
+    async function listen() {
+      try {
+        const response = await fetch(`${API_URL}/notifications/stream`, {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: abortController.signal,
+        });
+        if (!response.ok || !response.body) return;
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        while (!abortController.signal.aborted) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const events = buffer.split("\n\n");
+          buffer = events.pop() ?? "";
+          for (const event of events) {
+            const data = event
+              .split("\n")
+              .find((line) => line.startsWith("data:"))
+              ?.slice(5)
+              .trim();
+            if (!data) continue;
+            try {
+              if (JSON.parse(data).refresh) void refresh();
+            } catch {
+              // Ignore malformed stream messages and keep the connection alive.
+            }
+          }
+        }
+      } catch {
+        // The polling fallback keeps notifications working if the stream disconnects.
+      }
+    }
+
+    void listen();
+    return () => abortController.abort();
   }, [refresh]);
 
   const markAsRead = useCallback(async (id: string) => {

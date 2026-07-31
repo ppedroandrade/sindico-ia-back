@@ -1,4 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
+import { firstValueFrom } from 'rxjs';
 import { NotificationsService } from './notifications.service';
 
 describe('NotificationsService', () => {
@@ -65,5 +66,23 @@ describe('NotificationsService', () => {
     expect(prisma.notification.createMany.mock.calls[0][0].data).toHaveLength(
       2,
     );
+  });
+
+  it('emits a real-time event for the notification recipient', async () => {
+    const prisma = {
+      notification: {
+        createMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+    };
+    const service = new NotificationsService(prisma as any);
+    const event = firstValueFrom(service.stream(user));
+
+    await service.createForUser(user.userId, {
+      title: 'Nova atualização',
+      description: 'Evento em tempo real',
+      module: 'Avisos',
+    });
+
+    await expect(event).resolves.toEqual({ data: { refresh: true } });
   });
 });

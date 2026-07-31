@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
+import { filter, map, Subject } from 'rxjs';
 import { JwtUser } from '../auth/user-request.interface';
 import { PrismaService } from '../prisma.service';
 
@@ -16,6 +17,8 @@ export interface NotificationPayload {
 
 @Injectable()
 export class NotificationsService {
+  private readonly updates = new Subject<string>();
+
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(user: JwtUser) {
@@ -51,6 +54,13 @@ export class NotificationsService {
       data: { readAt: new Date() },
     });
     return { success: true };
+  }
+
+  stream(user: JwtUser) {
+    return this.updates.pipe(
+      filter((userId) => userId === user.userId),
+      map(() => ({ data: { refresh: true } })),
+    );
   }
 
   createForUser(userId: string, payload: NotificationPayload) {
@@ -99,7 +109,7 @@ export class NotificationsService {
     const uniqueUserIds = [...new Set(userIds.filter(Boolean))];
     if (uniqueUserIds.length === 0) return { count: 0 };
 
-    return this.prisma.notification.createMany({
+    const result = await this.prisma.notification.createMany({
       data: uniqueUserIds.map((userId) => ({
         userId,
         key: payload.key,
@@ -111,6 +121,10 @@ export class NotificationsService {
       })),
       skipDuplicates: true,
     });
+    if (result.count > 0) {
+      uniqueUserIds.forEach((userId) => this.updates.next(userId));
+    }
+    return result;
   }
 
   private async syncPaymentAlerts(user: JwtUser) {

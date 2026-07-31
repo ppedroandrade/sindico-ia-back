@@ -1,4 +1,12 @@
-import { Controller, Get, Param, Patch, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Req,
+  Sse,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../auth/user-request.interface';
 import { NotificationsService } from './notifications.service';
@@ -11,6 +19,11 @@ export class NotificationsController {
   @Get()
   findAll(@Req() req: AuthenticatedRequest) {
     return this.notificationsService.findAll(req.user);
+  }
+
+  @Sse('stream')
+  stream(@Req() req: AuthenticatedRequest) {
+    return this.notificationsService.stream(req.user);
   }
 
   @Patch('read-all')
