@@ -15,10 +15,12 @@ WORKDIR /app
 ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --omit=dev
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
-COPY --from=builder /app/tsconfig.json ./tsconfig.json
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder --chown=node:node /app/dist ./dist
+COPY --from=builder --chown=node:node /app/prisma ./prisma
+COPY --from=builder --chown=node:node /app/prisma.config.ts ./prisma.config.ts
+COPY --from=builder --chown=node:node /app/tsconfig.json ./tsconfig.json
+COPY --from=builder --chown=node:node /app/node_modules/.prisma ./node_modules/.prisma
+RUN chown -R node:node /app/node_modules
+USER node
 EXPOSE 3002
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]

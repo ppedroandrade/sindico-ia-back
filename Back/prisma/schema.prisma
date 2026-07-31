@@ -68,17 +68,6 @@ enum PackageStatus {
   returned
 }
 
-enum DocumentType {
-  regulation
-  convention
-  minutes
-  contract
-  report
-  manual
-  financial
-  other
-}
-
 enum MaintenanceStatus {
   open
   quoted
@@ -97,63 +86,64 @@ enum AssemblyStatus {
 }
 
 model User {
-  id                   String           @id @default(uuid())
-  name                 String
-  email                String           @unique
-  username             String?          @unique
-  password             String
-  role                 Role
-  cpf                  String?          @unique
-  apartment            String?
-  parkingSpaces        String[]         @default([])
-  active               Boolean          @default(true)
-  createdAt            DateTime         @default(now())
-  updatedAt            DateTime         @default(now()) @updatedAt
-  reservations         Reservation[]
-  payments             Payment[]
-  announcements        Announcement[]   @relation("AnnouncementAuthor")
-  occurrences          Occurrence[]     @relation("OccurrenceReporter")
-  assignedOccurrences  Occurrence[]     @relation("OccurrenceAssignee")
-  auditLogs            AuditLog[]
-  aiConversations      AiConversation[]
-  chatMessages         ChatMessage[]
-  ownedUnits           Unit[]           @relation("UnitOwner")
-  residentProfiles     UnitResident[]
-  vehicles             Vehicle[]
-  pets                 Pet[]
-  visitorAccesses      VisitorAccess[]
-  pickedPackages       PackageDelivery[] @relation("PackagePickup")
-  occurrenceComments   OccurrenceComment[]
-  maintenanceOrders    MaintenanceOrder[] @relation("MaintenanceRequester")
-  assemblyVotes        AssemblyVote[]
+  id                  String              @id @default(uuid())
+  name                String
+  email               String              @unique
+  username            String?             @unique
+  password            String
+  role                Role
+  cpf                 String?             @unique
+  apartment           String?
+  parkingSpaces       String[]            @default([])
+  active              Boolean             @default(true)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @default(now()) @updatedAt
+  reservations        Reservation[]
+  payments            Payment[]
+  announcements       Announcement[]      @relation("AnnouncementAuthor")
+  occurrences         Occurrence[]        @relation("OccurrenceReporter")
+  assignedOccurrences Occurrence[]        @relation("OccurrenceAssignee")
+  auditLogs           AuditLog[]
+  aiConversations     AiConversation[]
+  chatMessages        ChatMessage[]
+  ownedUnits          Unit[]              @relation("UnitOwner")
+  residentProfiles    UnitResident[]
+  vehicles            Vehicle[]
+  pets                Pet[]
+  visitorAccesses     VisitorAccess[]
+  pickedPackages      PackageDelivery[]   @relation("PackagePickup")
+  occurrenceComments  OccurrenceComment[]
+  maintenanceOrders   MaintenanceOrder[]  @relation("MaintenanceRequester")
+  assemblyVotes       AssemblyVote[]
+  notifications       Notification[]
 }
 
 model CondominiumSettings {
-  id        String   @id @default("main")
-  name      String?
-  cnpj      String?
-  address   String?
-  phone     String?
-  email     String?
+  id         String   @id @default("main")
+  name       String?
+  cnpj       String?
+  address    String?
+  phone      String?
+  email      String?
   totalUnits Int?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
 }
 
 model Unit {
-  id             String          @id @default(uuid())
-  block          String?
-  number         String
-  floor          String?
-  fraction       Float?
-  ownerId        String?
-  notes          String?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @default(now()) @updatedAt
-  owner          User?           @relation("UnitOwner", fields: [ownerId], references: [id])
-  residents      UnitResident[]
-  parkingSpaces  ParkingSpace[]
-  visitorAccesses VisitorAccess[]
+  id                String            @id @default(uuid())
+  block             String?
+  number            String
+  floor             String?
+  fraction          Float?
+  ownerId           String?
+  notes             String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @default(now()) @updatedAt
+  owner             User?             @relation("UnitOwner", fields: [ownerId], references: [id])
+  residents         UnitResident[]
+  parkingSpaces     ParkingSpace[]
+  visitorAccesses   VisitorAccess[]
   packageDeliveries PackageDelivery[]
 
   @@unique([block, number])
@@ -187,15 +177,15 @@ model ParkingSpace {
 }
 
 model Vehicle {
-  id        String   @id @default(uuid())
-  userId    String
-  plate     String   @unique
-  model     String?
-  color     String?
+  id           String   @id @default(uuid())
+  userId       String
+  plate        String   @unique
+  model        String?
+  color        String?
   parkingSpace String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
@@ -285,18 +275,18 @@ model Announcement {
 }
 
 model Occurrence {
-  id          String             @id @default(uuid())
+  id          String              @id @default(uuid())
   title       String
   description String
   category    String
-  priority    OccurrencePriority @default(medium)
-  status      OccurrenceStatus   @default(open)
+  priority    OccurrencePriority  @default(medium)
+  status      OccurrenceStatus    @default(open)
   reporterId  String
   assigneeId  String?
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @default(now()) @updatedAt
-  reporter    User               @relation("OccurrenceReporter", fields: [reporterId], references: [id])
-  assignee    User?              @relation("OccurrenceAssignee", fields: [assigneeId], references: [id])
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @default(now()) @updatedAt
+  reporter    User                @relation("OccurrenceReporter", fields: [reporterId], references: [id])
+  assignee    User?               @relation("OccurrenceAssignee", fields: [assigneeId], references: [id])
   comments    OccurrenceComment[]
 
   @@index([reporterId])
@@ -317,23 +307,23 @@ model OccurrenceComment {
 }
 
 model VisitorAccess {
-  id          String       @id @default(uuid())
-  unitId      String?
-  residentId  String?
-  visitorName String
-  document    String?
-  phone       String?
-  purpose     String?
-  company     String?
-  expectedAt  DateTime?
-  checkedInAt DateTime?
+  id           String       @id @default(uuid())
+  unitId       String?
+  residentId   String?
+  visitorName  String
+  document     String?
+  phone        String?
+  purpose      String?
+  company      String?
+  expectedAt   DateTime?
+  checkedInAt  DateTime?
   checkedOutAt DateTime?
-  status      AccessStatus @default(scheduled)
-  notes       String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @default(now()) @updatedAt
-  unit        Unit?        @relation(fields: [unitId], references: [id])
-  resident    User?        @relation(fields: [residentId], references: [id])
+  status       AccessStatus @default(scheduled)
+  notes        String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @default(now()) @updatedAt
+  unit         Unit?        @relation(fields: [unitId], references: [id])
+  resident     User?        @relation(fields: [residentId], references: [id])
 
   @@index([unitId])
   @@index([residentId])
@@ -342,51 +332,39 @@ model VisitorAccess {
 
 model PackageDelivery {
   id            String        @id @default(uuid())
-  unitId         String?
-  recipientName  String
-  carrier        String?
-  trackingCode   String?
-  receivedAt     DateTime      @default(now())
-  deliveredAt    DateTime?
-  pickedUpById   String?
-  status         PackageStatus @default(received)
-  notes          String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @default(now()) @updatedAt
-  unit           Unit?         @relation(fields: [unitId], references: [id])
-  pickedUpBy     User?         @relation("PackagePickup", fields: [pickedUpById], references: [id])
+  unitId        String?
+  recipientName String
+  carrier       String?
+  trackingCode  String?
+  receivedAt    DateTime      @default(now())
+  deliveredAt   DateTime?
+  pickedUpById  String?
+  status        PackageStatus @default(received)
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @default(now()) @updatedAt
+  unit          Unit?         @relation(fields: [unitId], references: [id])
+  pickedUpBy    User?         @relation("PackagePickup", fields: [pickedUpById], references: [id])
 
   @@index([unitId])
   @@index([status])
 }
 
-model Document {
-  id          String       @id @default(uuid())
-  title       String
-  type        DocumentType @default(other)
-  description String?
-  fileUrl     String?
-  content     String?
-  visibleToResidents Boolean @default(true)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @default(now()) @updatedAt
-}
-
 model MaintenanceOrder {
-  id          String            @id @default(uuid())
-  title       String
-  description String
-  category    String
-  location    String?
-  vendor      String?
+  id            String            @id @default(uuid())
+  title         String
+  description   String
+  category      String
+  location      String?
+  vendor        String?
   estimatedCost Float?
-  scheduledAt DateTime?
-  completedAt DateTime?
-  status      MaintenanceStatus @default(open)
-  requesterId String?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @default(now()) @updatedAt
-  requester   User?             @relation("MaintenanceRequester", fields: [requesterId], references: [id])
+  scheduledAt   DateTime?
+  completedAt   DateTime?
+  status        MaintenanceStatus @default(open)
+  requesterId   String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @default(now()) @updatedAt
+  requester     User?             @relation("MaintenanceRequester", fields: [requesterId], references: [id])
 
   @@index([status])
   @@index([requesterId])
@@ -430,6 +408,23 @@ model AuditLog {
   user      User?    @relation(fields: [userId], references: [id])
 
   @@index([entity, entityId])
+}
+
+model Notification {
+  id          String    @id @default(uuid())
+  userId      String
+  key         String?
+  type        String    @default("info")
+  title       String
+  description String
+  module      String
+  link        String?
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@index([userId, readAt, createdAt])
 }
 
 model AiConversation {

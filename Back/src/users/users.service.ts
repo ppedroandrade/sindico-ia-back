@@ -1,13 +1,21 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   private selectSafeUser = {
     id: true,
@@ -35,12 +43,14 @@ export class UsersService {
     });
 
     if (existing) {
-      throw new ConflictException('Já existe usuário com email, username ou CPF informado');
+      throw new ConflictException(
+        'Já existe usuário com email, username ou CPF informado',
+      );
     }
 
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
-    return this.prisma.user.create({
+    const created = await this.prisma.user.create({
       data: {
         name: data.name,
         email: data.email,
@@ -53,6 +63,23 @@ export class UsersService {
       },
       select: this.selectSafeUser,
     });
+    await Promise.all([
+      this.notifications.createForUser(created.id, {
+        type: 'success',
+        title: 'Cadastro concluído',
+        description: 'Sua conta no condomínio está pronta para uso.',
+        module: 'Conta',
+        link: '/conta',
+      }),
+      this.notifications.createForAdmins({
+        type: 'info',
+        title: 'Novo morador cadastrado',
+        description: `${created.name} foi adicionado ao sistema.`,
+        module: 'Usuários',
+        link: '/usuarios',
+      }),
+    ]);
+    return created;
   }
 
   findAll() {
@@ -81,7 +108,9 @@ export class UsersService {
       : null;
 
     if (duplicate) {
-      throw new ConflictException('Já existe usuário com email, username ou CPF informado');
+      throw new ConflictException(
+        'Já existe usuário com email, username ou CPF informado',
+      );
     }
 
     const password = data.newPassword
@@ -124,7 +153,10 @@ export class UsersService {
         select: this.selectSafeUser,
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2003'
+      ) {
         throw new ConflictException(
           'Não é possível excluir este usuário pois existem registros vinculados a ele (reservas, pagamentos, ocorrências, etc). Desative o usuário em vez de excluí-lo.',
         );

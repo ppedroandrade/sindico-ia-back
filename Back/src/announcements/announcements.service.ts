@@ -3,10 +3,14 @@ import { PrismaService } from '../prisma.service';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
 import { UpdateAnnouncementDto } from './dto/update-announcement.dto';
 import { JwtUser } from '../auth/user-request.interface';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class AnnouncementsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   private readonly safeAuthorSelect = {
     id: true,
@@ -16,8 +20,8 @@ export class AnnouncementsService {
     apartment: true,
   };
 
-  create(data: CreateAnnouncementDto, user: JwtUser) {
-    return this.prisma.announcement.create({
+  async create(data: CreateAnnouncementDto, user: JwtUser) {
+    const announcement = await this.prisma.announcement.create({
       data: {
         title: data.title,
         content: data.content,
@@ -27,6 +31,19 @@ export class AnnouncementsService {
       },
       include: { author: { select: this.safeAuthorSelect } },
     });
+    await this.notifications.createForResidents({
+      type:
+        announcement.type === 'urgent'
+          ? 'error'
+          : announcement.type === 'warning'
+            ? 'warning'
+            : 'info',
+      title: 'Novo comunicado',
+      description: announcement.title,
+      module: 'Avisos',
+      link: '/avisos',
+    });
+    return announcement;
   }
 
   findAll() {

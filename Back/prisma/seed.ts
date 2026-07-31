@@ -2,7 +2,6 @@ import {
   AccessStatus,
   AnnouncementType,
   AssemblyStatus,
-  DocumentType,
   MaintenanceStatus,
   OccurrencePriority,
   OccurrenceStatus,
@@ -27,13 +26,13 @@ function dateTime(value: string) {
 }
 
 async function resetDatabase() {
+  await prisma.notification.deleteMany();
   await prisma.chatMessage.deleteMany();
   await prisma.aiConversation.deleteMany();
   await prisma.auditLog.deleteMany();
   await prisma.assemblyVote.deleteMany();
   await prisma.assembly.deleteMany();
   await prisma.maintenanceOrder.deleteMany();
-  await prisma.document.deleteMany();
   await prisma.packageDelivery.deleteMany();
   await prisma.visitorAccess.deleteMany();
   await prisma.occurrenceComment.deleteMany();
@@ -230,7 +229,8 @@ async function main() {
         data: {
           unitId: units[index].id,
           userId: morador.id,
-          type: index === 1 ? UnitOccupancyType.tenant : UnitOccupancyType.owner,
+          type:
+            index === 1 ? UnitOccupancyType.tenant : UnitOccupancyType.owner,
           isPrimary: true,
         },
       }),
@@ -238,29 +238,71 @@ async function main() {
   );
 
   await Promise.all([
-    prisma.parkingSpace.create({ data: { code: 'V-01', unitId: units[0].id, notes: 'Subsolo 1' } }),
-    prisma.parkingSpace.create({ data: { code: 'V-02', unitId: units[1].id, notes: 'Subsolo 1' } }),
-    prisma.parkingSpace.create({ data: { code: 'V-14', unitId: units[2].id, notes: 'Subsolo 2' } }),
-    prisma.parkingSpace.create({ data: { code: 'V-15', unitId: units[3].id, notes: 'Subsolo 2' } }),
-    prisma.parkingSpace.create({ data: { code: 'V-28', unitId: units[4].id, notes: 'Vaga coberta' } }),
-    prisma.parkingSpace.create({ data: { code: 'V-29', notes: 'Vaga de visitantes' } }),
+    prisma.parkingSpace.create({
+      data: { code: 'V-01', unitId: units[0].id, notes: 'Subsolo 1' },
+    }),
+    prisma.parkingSpace.create({
+      data: { code: 'V-02', unitId: units[1].id, notes: 'Subsolo 1' },
+    }),
+    prisma.parkingSpace.create({
+      data: { code: 'V-14', unitId: units[2].id, notes: 'Subsolo 2' },
+    }),
+    prisma.parkingSpace.create({
+      data: { code: 'V-15', unitId: units[3].id, notes: 'Subsolo 2' },
+    }),
+    prisma.parkingSpace.create({
+      data: { code: 'V-28', unitId: units[4].id, notes: 'Vaga coberta' },
+    }),
+    prisma.parkingSpace.create({
+      data: { code: 'V-29', notes: 'Vaga de visitantes' },
+    }),
   ]);
 
   await Promise.all([
     prisma.vehicle.create({
-      data: { userId: moradores[0].id, plate: 'ABC1D23', model: 'Honda Civic', color: 'Prata', parkingSpace: 'V-01' },
+      data: {
+        userId: moradores[0].id,
+        plate: 'ABC1D23',
+        model: 'Honda Civic',
+        color: 'Prata',
+        parkingSpace: 'V-01',
+      },
     }),
     prisma.vehicle.create({
-      data: { userId: moradores[1].id, plate: 'BRA2E45', model: 'Jeep Compass', color: 'Preto', parkingSpace: 'V-02' },
+      data: {
+        userId: moradores[1].id,
+        plate: 'BRA2E45',
+        model: 'Jeep Compass',
+        color: 'Preto',
+        parkingSpace: 'V-02',
+      },
     }),
     prisma.vehicle.create({
-      data: { userId: moradores[4].id, plate: 'SPC3F67', model: 'Toyota Corolla', color: 'Branco', parkingSpace: 'V-28' },
+      data: {
+        userId: moradores[4].id,
+        plate: 'SPC3F67',
+        model: 'Toyota Corolla',
+        color: 'Branco',
+        parkingSpace: 'V-28',
+      },
     }),
     prisma.pet.create({
-      data: { userId: moradores[0].id, name: 'Nina', species: 'Cachorro', breed: 'Shih-tzu', notes: 'Vacinacao em dia' },
+      data: {
+        userId: moradores[0].id,
+        name: 'Nina',
+        species: 'Cachorro',
+        breed: 'Shih-tzu',
+        notes: 'Vacinacao em dia',
+      },
     }),
     prisma.pet.create({
-      data: { userId: moradores[2].id, name: 'Mingau', species: 'Gato', breed: 'SRD', notes: 'Nao sai da unidade' },
+      data: {
+        userId: moradores[2].id,
+        name: 'Mingau',
+        species: 'Gato',
+        breed: 'SRD',
+        notes: 'Nao sai da unidade',
+      },
     }),
   ]);
 
@@ -273,9 +315,24 @@ async function main() {
         pricePerHour: 120,
         items: {
           create: [
-            { name: 'Mesa redonda', quantity: 12, unitPrice: 180, category: 'Mobiliario' },
-            { name: 'Cadeira acolchoada', quantity: 80, unitPrice: 45, category: 'Mobiliario' },
-            { name: 'Projetor', quantity: 1, unitPrice: 2600, category: 'Audio e video' },
+            {
+              name: 'Mesa redonda',
+              quantity: 12,
+              unitPrice: 180,
+              category: 'Mobiliario',
+            },
+            {
+              name: 'Cadeira acolchoada',
+              quantity: 80,
+              unitPrice: 45,
+              category: 'Mobiliario',
+            },
+            {
+              name: 'Projetor',
+              quantity: 1,
+              unitPrice: 2600,
+              category: 'Audio e video',
+            },
           ],
         },
       },
@@ -288,8 +345,18 @@ async function main() {
         pricePerHour: 90,
         items: {
           create: [
-            { name: 'Cooktop', quantity: 1, unitPrice: 1400, category: 'Eletrodomesticos' },
-            { name: 'Adega climatizada', quantity: 1, unitPrice: 3200, category: 'Eletrodomesticos' },
+            {
+              name: 'Cooktop',
+              quantity: 1,
+              unitPrice: 1400,
+              category: 'Eletrodomesticos',
+            },
+            {
+              name: 'Adega climatizada',
+              quantity: 1,
+              unitPrice: 3200,
+              category: 'Eletrodomesticos',
+            },
           ],
         },
       },
@@ -302,8 +369,18 @@ async function main() {
         pricePerHour: 70,
         items: {
           create: [
-            { name: 'Freezer horizontal', quantity: 1, unitPrice: 2100, category: 'Eletrodomesticos' },
-            { name: 'Grelha inox', quantity: 2, unitPrice: 350, category: 'Utensilios' },
+            {
+              name: 'Freezer horizontal',
+              quantity: 1,
+              unitPrice: 2100,
+              category: 'Eletrodomesticos',
+            },
+            {
+              name: 'Grelha inox',
+              quantity: 2,
+              unitPrice: 350,
+              category: 'Utensilios',
+            },
           ],
         },
       },
@@ -316,8 +393,18 @@ async function main() {
         pricePerHour: 0,
         items: {
           create: [
-            { name: 'Mesa de trabalho', quantity: 6, unitPrice: 900, category: 'Mobiliario' },
-            { name: 'Monitor 27 polegadas', quantity: 2, unitPrice: 1300, category: 'Tecnologia' },
+            {
+              name: 'Mesa de trabalho',
+              quantity: 6,
+              unitPrice: 900,
+              category: 'Mobiliario',
+            },
+            {
+              name: 'Monitor 27 polegadas',
+              quantity: 2,
+              unitPrice: 1300,
+              category: 'Tecnologia',
+            },
           ],
         },
       },
@@ -330,8 +417,18 @@ async function main() {
         pricePerHour: 40,
         items: {
           create: [
-            { name: 'Rede de volei', quantity: 1, unitPrice: 240, category: 'Esporte' },
-            { name: 'Bolas oficiais', quantity: 4, unitPrice: 180, category: 'Esporte' },
+            {
+              name: 'Rede de volei',
+              quantity: 1,
+              unitPrice: 240,
+              category: 'Esporte',
+            },
+            {
+              name: 'Bolas oficiais',
+              quantity: 4,
+              unitPrice: 180,
+              category: 'Esporte',
+            },
           ],
         },
       },
@@ -349,7 +446,8 @@ async function main() {
         totalPrice: 600,
         guests: 45,
         status: ReservationStatus.confirmed,
-        observations: 'Aniversario infantil. Solicitou liberacao de fornecedor de buffet.',
+        observations:
+          'Aniversario infantil. Solicitou liberacao de fornecedor de buffet.',
       },
     }),
     prisma.reservation.create({
@@ -501,54 +599,57 @@ async function main() {
     }),
   ]);
 
-  const [occurrence1, occurrence2, occurrence3, occurrence4] = await Promise.all([
-    prisma.occurrence.create({
-      data: {
-        title: 'Infiltracao na garagem do bloco A',
-        description:
-          'Ha gotejamento constante proximo as vagas V-01 e V-02 apos chuvas fortes.',
-        category: 'Manutencao predial',
-        priority: OccurrencePriority.high,
-        status: OccurrenceStatus.in_progress,
-        reporterId: moradores[0].id,
-        assigneeId: admin.id,
-      },
-    }),
-    prisma.occurrence.create({
-      data: {
-        title: 'Barulho apos horario permitido',
-        description:
-          'Som alto vindo do apartamento B-202 depois das 23h durante o fim de semana.',
-        category: 'Convivencia',
-        priority: OccurrencePriority.medium,
-        status: OccurrenceStatus.open,
-        reporterId: moradores[2].id,
-        assigneeId: admin.id,
-      },
-    }),
-    prisma.occurrence.create({
-      data: {
-        title: 'Lampada queimada na escada de emergencia',
-        description: 'Escada do bloco C esta com pouca iluminacao entre o 2o e 3o andar.',
-        category: 'Seguranca',
-        priority: OccurrencePriority.urgent,
-        status: OccurrenceStatus.resolved,
-        reporterId: moradores[4].id,
-        assigneeId: limpeza.id,
-      },
-    }),
-    prisma.occurrence.create({
-      data: {
-        title: 'Portao social demorando para fechar',
-        description: 'Portao fica aberto por mais de 25 segundos apos entrada de visitantes.',
-        category: 'Portaria',
-        priority: OccurrencePriority.high,
-        status: OccurrenceStatus.open,
-        reporterId: moradores[1].id,
-        assigneeId: admin.id,
-      },
-    }),
-  ]);
+  const [occurrence1, occurrence2, occurrence3, occurrence4] =
+    await Promise.all([
+      prisma.occurrence.create({
+        data: {
+          title: 'Infiltracao na garagem do bloco A',
+          description:
+            'Ha gotejamento constante proximo as vagas V-01 e V-02 apos chuvas fortes.',
+          category: 'Manutencao predial',
+          priority: OccurrencePriority.high,
+          status: OccurrenceStatus.in_progress,
+          reporterId: moradores[0].id,
+          assigneeId: admin.id,
+        },
+      }),
+      prisma.occurrence.create({
+        data: {
+          title: 'Barulho apos horario permitido',
+          description:
+            'Som alto vindo do apartamento B-202 depois das 23h durante o fim de semana.',
+          category: 'Convivencia',
+          priority: OccurrencePriority.medium,
+          status: OccurrenceStatus.open,
+          reporterId: moradores[2].id,
+          assigneeId: admin.id,
+        },
+      }),
+      prisma.occurrence.create({
+        data: {
+          title: 'Lampada queimada na escada de emergencia',
+          description:
+            'Escada do bloco C esta com pouca iluminacao entre o 2o e 3o andar.',
+          category: 'Seguranca',
+          priority: OccurrencePriority.urgent,
+          status: OccurrenceStatus.resolved,
+          reporterId: moradores[4].id,
+          assigneeId: limpeza.id,
+        },
+      }),
+      prisma.occurrence.create({
+        data: {
+          title: 'Portao social demorando para fechar',
+          description:
+            'Portao fica aberto por mais de 25 segundos apos entrada de visitantes.',
+          category: 'Portaria',
+          priority: OccurrencePriority.high,
+          status: OccurrenceStatus.open,
+          reporterId: moradores[1].id,
+          assigneeId: admin.id,
+        },
+      }),
+    ]);
 
   await Promise.all([
     prisma.occurrenceComment.create({
@@ -562,7 +663,8 @@ async function main() {
       data: {
         occurrenceId: occurrence1.id,
         authorId: moradores[0].id,
-        content: 'Enviei fotos atualizadas da garagem pelo grupo da administracao.',
+        content:
+          'Enviei fotos atualizadas da garagem pelo grupo da administracao.',
       },
     }),
     prisma.occurrenceComment.create({
@@ -576,7 +678,8 @@ async function main() {
       data: {
         occurrenceId: occurrence4.id,
         authorId: admin.id,
-        content: 'Tecnico da empresa de controle de acesso agendado para sexta-feira.',
+        content:
+          'Tecnico da empresa de controle de acesso agendado para sexta-feira.',
       },
     }),
     prisma.occurrenceComment.create({
@@ -669,36 +772,6 @@ async function main() {
   ]);
 
   await Promise.all([
-    prisma.document.create({
-      data: {
-        title: 'Regimento interno atualizado',
-        type: DocumentType.regulation,
-        description: 'Normas de convivencia, uso das areas comuns e penalidades.',
-        fileUrl: 'https://exemplo.com/documentos/regimento-interno.pdf',
-        visibleToResidents: true,
-      },
-    }),
-    prisma.document.create({
-      data: {
-        title: 'Ata da assembleia de junho/2026',
-        type: DocumentType.minutes,
-        description: 'Ata com aprovacao da pintura da fachada e revisao do fundo de reserva.',
-        fileUrl: 'https://exemplo.com/documentos/ata-junho-2026.pdf',
-        visibleToResidents: true,
-      },
-    }),
-    prisma.document.create({
-      data: {
-        title: 'Contrato de manutencao dos elevadores',
-        type: DocumentType.contract,
-        description: 'Contrato vigente com a empresa Elevatec.',
-        fileUrl: 'https://exemplo.com/documentos/contrato-elevadores.pdf',
-        visibleToResidents: false,
-      },
-    }),
-  ]);
-
-  await Promise.all([
     prisma.maintenanceOrder.create({
       data: {
         title: 'Reparo na bomba da piscina',
@@ -727,7 +800,8 @@ async function main() {
     prisma.maintenanceOrder.create({
       data: {
         title: 'Troca de lampadas da escada do bloco C',
-        description: 'Chamado aberto por baixa iluminacao na rota de emergencia.',
+        description:
+          'Chamado aberto por baixa iluminacao na rota de emergencia.',
         category: 'Eletrica',
         location: 'Bloco C',
         vendor: 'Equipe interna',
@@ -743,7 +817,8 @@ async function main() {
   const assembly = await prisma.assembly.create({
     data: {
       title: 'Assembleia ordinaria - Agosto/2026',
-      description: 'Deliberacao sobre orcamento, portaria remota e obras de acessibilidade.',
+      description:
+        'Deliberacao sobre orcamento, portaria remota e obras de acessibilidade.',
       scheduledAt: dateTime('2026-08-12T19:30'),
       location: 'Salao de Festas',
       agenda:
@@ -796,13 +871,99 @@ async function main() {
     },
   });
 
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: admin.id,
+        type: 'warning',
+        title: 'Reserva aguardando aprovação',
+        description:
+          'Carlos Almeida solicitou o Salão de Festas para 02/08/2026.',
+        module: 'Reservas',
+        link: '/reservas',
+        createdAt: dateTime('2026-07-29T16:20'),
+      },
+      {
+        userId: admin.id,
+        type: 'success',
+        title: 'Pagamento confirmado',
+        description: 'Pagamento de R$ 850,00 recebido de Fernanda Rocha.',
+        module: 'Financeiro',
+        link: '/financeiro',
+        createdAt: dateTime('2026-07-29T14:10'),
+      },
+      {
+        userId: admin.id,
+        type: 'error',
+        title: 'Novo chamado urgente',
+        description:
+          'Vazamento próximo ao elevador do bloco B requer acompanhamento.',
+        module: 'Ocorrências',
+        link: '/ocorrencias',
+        createdAt: dateTime('2026-07-29T09:30'),
+      },
+      {
+        userId: admin.id,
+        type: 'info',
+        title: 'Nova mensagem no chat',
+        description:
+          'Carlos Almeida enviou uma dúvida sobre o salão de festas.',
+        module: 'Chatbot / IA',
+        link: '/chatbot',
+        createdAt: dateTime('2026-07-28T18:45'),
+        readAt: dateTime('2026-07-29T08:00'),
+      },
+      {
+        userId: moradores[0].id,
+        type: 'success',
+        title: 'Reserva aprovada',
+        description: 'Sua reserva do Salão de Festas foi confirmada.',
+        module: 'Reservas',
+        link: '/reservas',
+        createdAt: dateTime('2026-07-29T16:35'),
+      },
+      {
+        userId: moradores[0].id,
+        type: 'warning',
+        title: 'Cobrança próxima do vencimento',
+        description: 'A cobrança condominial vence nos próximos dias.',
+        module: 'Financeiro',
+        link: '/financeiro',
+        createdAt: dateTime('2026-07-29T08:15'),
+      },
+      {
+        userId: moradores[0].id,
+        type: 'info',
+        title: 'Nova resposta no chat',
+        description:
+          'A administração respondeu sua dúvida sobre buffet externo.',
+        module: 'Chatbot / IA',
+        link: '/chatbot',
+        createdAt: dateTime('2026-07-28T19:00'),
+        readAt: dateTime('2026-07-29T08:00'),
+      },
+      ...moradores.map((morador) => ({
+        userId: morador.id,
+        type: 'info',
+        title: 'Novo comunicado',
+        description:
+          'Manutenção preventiva dos elevadores programada para esta semana.',
+        module: 'Avisos',
+        link: '/avisos',
+        createdAt: dateTime('2026-07-28T10:00'),
+      })),
+    ],
+  });
+
   await Promise.all([
     prisma.auditLog.create({
       data: {
         userId: admin.id,
         action: 'seed',
         entity: 'database',
-        metadata: { description: 'Base de demonstracao recriada para apresentacao' },
+        metadata: {
+          description: 'Base de demonstracao recriada para apresentacao',
+        },
       },
     }),
     prisma.auditLog.create({
@@ -839,6 +1000,7 @@ async function main() {
     payments: await prisma.payment.count(),
     announcements: await prisma.announcement.count(),
     occurrences: await prisma.occurrence.count(),
+    notifications: await prisma.notification.count(),
   });
 }
 

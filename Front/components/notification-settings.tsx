@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { Card } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle2 } from "lucide-react";
 
 export function NotificationSettings() {
   const notifications = [
@@ -10,62 +10,69 @@ export function NotificationSettings() {
       id: "payment-received",
       title: "Pagamentos Recebidos",
       description: "Notificar quando um pagamento for confirmado",
-      enabled: false,
     },
     {
       id: "new-occurrence",
       title: "Novas Ocorrências",
       description: "Alertar sobre problemas reportados pelos moradores",
-      enabled: false,
     },
     {
       id: "reservation-pending",
       title: "Reservas Pendentes",
       description: "Notificar sobre reservas aguardando aprovação",
-      enabled: false,
     },
     {
       id: "overdue-payment",
       title: "Inadimplência",
       description: "Alertar sobre pagamentos em atraso",
-      enabled: false,
     },
     {
       id: "chatbot-escalation",
       title: "Escalação do Chatbot",
-      description: "Notificar quando o chatbot não conseguir resolver uma questão",
-      enabled: false,
+      description:
+        "Notificar quando o chatbot não conseguir resolver uma questão",
     },
     {
-      id: "daily-summary",
-      title: "Resumo Diário",
-      description: "Receber relatório diário das atividades",
-      enabled: false,
+      id: "operational-updates",
+      title: "Atualizações Operacionais",
+      description:
+        "Alertar sobre portaria, manutenção, avisos e cadastros relevantes",
     },
-  ]
+  ];
 
   return (
     <Card className="p-6">
       <div className="space-y-6">
         <div>
           <h3 className="text-lg font-semibold">Notificações</h3>
-          <p className="text-sm text-muted-foreground">Configure os alertas que deseja receber</p>
+          <p className="text-sm text-muted-foreground">
+            Alertas operacionais ativos para o perfil administrador
+          </p>
         </div>
 
         <div className="space-y-4">
           {notifications.map((notification) => (
-            <div key={notification.id} className="flex items-start justify-between gap-4 p-4 rounded-lg border">
-              <div className="flex-1">
-                <Label htmlFor={notification.id} className="text-sm font-medium cursor-pointer">
-                  {notification.title}
-                </Label>
-                <p className="text-sm text-muted-foreground mt-1">{notification.description}</p>
+            <div
+              key={notification.id}
+              className="flex items-start justify-between gap-4 p-4 rounded-lg border"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">{notification.title}</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {notification.description}
+                </p>
               </div>
-              <Switch id={notification.id} defaultChecked={notification.enabled} disabled />
+              <Badge
+                variant="outline"
+                className="shrink-0 border-success/30 bg-success/10 text-success"
+              >
+                <CheckCircle2 className="mr-1 h-3 w-3" />
+                Ativo
+              </Badge>
             </div>
           ))}
         </div>
       </div>
     </Card>
-  )
+  );
 }

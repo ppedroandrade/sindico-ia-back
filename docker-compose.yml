@@ -4,7 +4,7 @@ services:
     container_name: sindico-ia-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin}
+      POSTGRES_PASSWORD: '${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env (ex: openssl rand -base64 24)}'
       POSTGRES_DB: ${POSTGRES_DB:-sindico}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
@@ -24,9 +24,9 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3002
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-admin}@postgres:5432/${POSTGRES_DB:-sindico}?schema=public
-      DIRECT_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-admin}@postgres:5432/${POSTGRES_DB:-sindico}?schema=public
-      JWT_SECRET: ${JWT_SECRET:-troque-este-segredo-em-producao}
+      DATABASE_URL: 'postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env}@postgres:5432/${POSTGRES_DB:-sindico}?schema=public'
+      DIRECT_URL: 'postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env}@postgres:5432/${POSTGRES_DB:-sindico}?schema=public'
+      JWT_SECRET: '${JWT_SECRET:?Defina JWT_SECRET no .env (ex: openssl rand -base64 32)}'
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
     ports:

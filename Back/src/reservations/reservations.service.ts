@@ -1,13 +1,23 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { UpdateReservationDto } from './dto/update-reservation.dto';
 import { JwtUser } from '../auth/user-request.interface';
 import { Prisma, ReservationStatus } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ReservationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   private readonly reservationInclude = {
     area: true,
@@ -46,7 +56,9 @@ export class ReservationsService {
   private getTotalPrice(startTime: Date, endTime: Date, pricePerHour: number) {
     const durationMs = endTime.getTime() - startTime.getTime();
     if (durationMs <= 0) {
-      throw new BadRequestException('Horário final deve ser posterior ao inicial');
+      throw new BadRequestException(
+        'Horário final deve ser posterior ao inicial',
+      );
     }
     const hours = Math.ceil(durationMs / (1000 * 60 * 60));
     return hours * pricePerHour;
@@ -57,28 +69,37 @@ export class ReservationsService {
       where: { id: data.areaId },
     });
     if (!area) throw new NotFoundException('Área comum não encontrada');
-    if (!area.available) throw new BadRequestException('Área comum indisponível');
+    if (!area.available)
+      throw new BadRequestException('Área comum indisponível');
 
     const startTime = this.toDate(data.startTime);
     const endTime = this.toDate(data.endTime);
     const date = this.toDate(data.date);
-    const userId = user.role === 'admin' && data.userId ? data.userId : user.userId;
+    const userId =
+      user.role === 'admin' && data.userId ? data.userId : user.userId;
 
     if (data.guests > area.capacity) {
-      throw new BadRequestException('Número de convidados excede a capacidade da área');
+      throw new BadRequestException(
+        'Número de convidados excede a capacidade da área',
+      );
     }
 
     const { start: dayStart, end: dayEnd } = this.getDayRange(date);
     const sameDayReservation = await this.prisma.reservation.findFirst({
       where: {
         areaId: data.areaId,
-        status: { in: [ReservationStatus.pending, ReservationStatus.confirmed] },
+        status: {
+          in: [ReservationStatus.pending, ReservationStatus.confirmed],
+        },
         date: { gte: dayStart, lte: dayEnd },
       },
     });
-    if (sameDayReservation) throw new BadRequestException('Já existe solicitação de reserva para essa área neste dia');
+    if (sameDayReservation)
+      throw new BadRequestException(
+        'Já existe solicitação de reserva para essa área neste dia',
+      );
 
-    return this.prisma.reservation.create({
+    const reservation = await this.prisma.reservation.create({
       data: {
         userId,
         areaId: data.areaId,
@@ -91,11 +112,31 @@ export class ReservationsService {
       },
       include: this.reservationInclude,
     });
+    const description = `${reservation.area.name} para ${reservation.date.toLocaleDateString('pt-BR')}.`;
+    await Promise.all([
+      this.notifications.createForUser(reservation.userId, {
+        type: 'info',
+        title: 'Solicitação de reserva criada',
+        description,
+        module: 'Reservas',
+        link: '/reservas',
+      }),
+      this.notifications.createForAdmins({
+        type: 'warning',
+        title: 'Nova reserva aguardando aprovação',
+        description: `${reservation.user.name} solicitou ${description}`,
+        module: 'Reservas',
+        link: '/reservas',
+      }),
+    ]);
+    return reservation;
   }
 
   async findAll(user: JwtUser) {
     const where: Prisma.ReservationWhereInput =
-      user.role === 'admin' || user.role === 'limpeza' ? {} : { userId: user.userId };
+      user.role === 'admin' || user.role === 'limpeza'
+        ? {}
+        : { userId: user.userId };
 
     return this.prisma.reservation.findMany({
       where,
@@ -124,7 +165,8 @@ export class ReservationsService {
     const area = data.areaId
       ? await this.prisma.commonArea.findUnique({ where: { id: data.areaId } })
       : undefined;
-    if (data.areaId && !area) throw new NotFoundException('Área comum não encontrada');
+    if (data.areaId && !area)
+      throw new NotFoundException('Área comum não encontrada');
 
     const nextDate = date ?? current.date;
     const nextAreaId = data.areaId ?? current.areaId;
@@ -133,16 +175,20 @@ export class ReservationsService {
       where: {
         id: { not: id },
         areaId: nextAreaId,
-        status: { in: [ReservationStatus.pending, ReservationStatus.confirmed] },
+        status: {
+          in: [ReservationStatus.pending, ReservationStatus.confirmed],
+        },
         date: { gte: dayStart, lte: dayEnd },
       },
     });
     if (sameDayReservation) {
-      throw new BadRequestException('Já existe solicitação de reserva para essa área neste dia');
+      throw new BadRequestException(
+        'Já existe solicitação de reserva para essa área neste dia',
+      );
     }
 
     const { status, observations, userId, areaId, guests } = data;
-    return this.prisma.reservation.update({
+    const updated = await this.prisma.reservation.update({
       where: { id },
       data: {
         status,
@@ -160,6 +206,8 @@ export class ReservationsService {
       },
       include: this.reservationInclude,
     });
+    if (status && status !== current.status) await this.notifyStatus(updated);
+    return updated;
   }
 
   async cancel(id: string, user: JwtUser) {
@@ -173,24 +221,31 @@ export class ReservationsService {
       throw new BadRequestException('Reserva concluída não pode ser cancelada');
     }
 
-    return this.prisma.reservation.update({
+    const updated = await this.prisma.reservation.update({
       where: { id },
       data: { status: ReservationStatus.cancelled },
       include: this.reservationInclude,
     });
+    await this.notifyStatus(updated);
+    return updated;
   }
 
   async updateStatus(id: string, status: string) {
-    if (!Object.values(ReservationStatus).includes(status as ReservationStatus)) {
+    if (
+      !Object.values(ReservationStatus).includes(status as ReservationStatus)
+    ) {
       throw new BadRequestException('Status de reserva inválido');
     }
 
-    await this.findOne(id);
-    return this.prisma.reservation.update({
+    const current = await this.findOne(id);
+    if (current.status === status) return current;
+    const updated = await this.prisma.reservation.update({
       where: { id },
       data: { status: status as ReservationStatus },
       include: this.reservationInclude,
     });
+    await this.notifyStatus(updated);
+    return updated;
   }
 
   async remove(id: string) {
@@ -198,10 +253,44 @@ export class ReservationsService {
     try {
       return await this.prisma.reservation.delete({ where: { id } });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
-        throw new ConflictException('Não é possível excluir esta reserva pois existem registros vinculados a ela.');
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2003'
+      ) {
+        throw new ConflictException(
+          'Não é possível excluir esta reserva pois existem registros vinculados a ela.',
+        );
       }
       throw error;
     }
+  }
+
+  private async notifyStatus(
+    reservation: Awaited<ReturnType<ReservationsService['findOne']>>,
+  ) {
+    const labels: Record<
+      ReservationStatus,
+      { title: string; type: 'info' | 'success' | 'warning' | 'error' }
+    > = {
+      pending: { title: 'Reserva aguardando aprovação', type: 'warning' },
+      confirmed: { title: 'Reserva aprovada', type: 'success' },
+      cancelled: { title: 'Reserva cancelada', type: 'error' },
+      completed: { title: 'Reserva concluída', type: 'success' },
+    };
+    const current = labels[reservation.status];
+    const payload = {
+      type: current.type,
+      title: current.title,
+      description: `${reservation.area.name} em ${reservation.date.toLocaleDateString('pt-BR')}.`,
+      module: 'Reservas',
+      link: '/reservas',
+    };
+    await Promise.all([
+      this.notifications.createForUser(reservation.userId, payload),
+      this.notifications.createForAdmins({
+        ...payload,
+        description: `${reservation.user.name}: ${payload.description}`,
+      }),
+    ]);
   }
 }

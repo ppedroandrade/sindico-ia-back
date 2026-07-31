@@ -40,7 +40,7 @@ Depois que os containers estiverem rodando:
 docker compose exec back npx prisma db seed
 ```
 
-O seed atual limpa a base e recria dados completos de demonstracao, incluindo usuarios, unidades, areas comuns, reservas, pagamentos, avisos, ocorrencias, portaria, documentos, manutencoes e assembleia.
+O seed atual limpa a base e recria dados completos de demonstracao, incluindo usuarios, unidades, areas comuns, reservas, pagamentos, avisos, ocorrencias, portaria, manutencoes, assembleia e notificacoes.
 
 Usuarios principais:
 

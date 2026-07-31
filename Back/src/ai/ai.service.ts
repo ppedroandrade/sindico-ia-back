@@ -1,12 +1,20 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { JwtUser } from '../auth/user-request.interface';
 import { CreateMessageDto } from './dto/create-message.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class AiService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   private readonly conversationInclude = {
     user: {
@@ -30,7 +38,9 @@ export class AiService {
 
   async createMessage(data: CreateMessageDto, user: JwtUser) {
     const conversation = data.conversationId
-      ? await this.prisma.aiConversation.findUnique({ where: { id: data.conversationId } })
+      ? await this.prisma.aiConversation.findUnique({
+          where: { id: data.conversationId },
+        })
       : await this.prisma.aiConversation.create({
           data: {
             userId: user.userId,
@@ -69,6 +79,24 @@ export class AiService {
       where: { id: conversation.id },
       data: { updatedAt: new Date() },
     });
+
+    if (role === 'user') {
+      await this.notifications.createForAdmins({
+        type: 'info',
+        title: 'Nova mensagem no chat',
+        description: data.content.slice(0, 100),
+        module: 'Chatbot / IA',
+        link: '/chatbot',
+      });
+    } else {
+      await this.notifications.createForUser(conversation.userId, {
+        type: 'info',
+        title: 'Nova resposta no chat',
+        description: data.content.slice(0, 100),
+        module: 'Chatbot / IA',
+        link: '/chatbot',
+      });
+    }
 
     return {
       conversationId: conversation.id,

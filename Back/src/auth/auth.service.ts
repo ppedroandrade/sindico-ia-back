@@ -1,9 +1,11 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { Role, User } from '@prisma/client';
+import { User } from '@prisma/client';
 import { JwtUser } from './user-request.interface';
+
+const INVALID_CREDENTIALS_MESSAGE = 'Credenciais inválidas';
 
 @Injectable()
 export class AuthService {
@@ -19,10 +21,17 @@ export class AuthService {
         OR: [{ email: login }, { username: login }],
       },
     });
-    if (!user) throw new UnauthorizedException('Usuário não encontrado');
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) throw new UnauthorizedException('Senha incorreta');
+    // Sempre roda o bcrypt.compare, mesmo quando o usuário não existe, para não vazar
+    // (por diferença de tempo de resposta) se um email/username está cadastrado ou não.
+    const passwordHash =
+      user?.password ??
+      '$2b$10$y3ntRdS4ZBMeqJj7IshvAeNYDzr5Rv7KzA1YYdW5UP61DNX12D5fS';
+    const isPasswordValid = await bcrypt.compare(password, passwordHash);
+
+    if (!user || !isPasswordValid) {
+      throw new UnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
+    }
 
     return user;
   }
@@ -41,29 +50,6 @@ export class AuthService {
     };
   }
 
-  async register(data: {
-    name: string;
-    email: string;
-    password: string;
-    role: Role;
-  }) {
-    const existing = await this.prisma.user.findUnique({
-      where: { email: data.email },
-    });
-    if (existing) throw new ConflictException('Email já cadastrado');
-
-    const hashedPassword = await bcrypt.hash(data.password, 10);
-    const user = await this.prisma.user.create({
-      data: {
-        name: data.name,
-        email: data.email,
-        password: hashedPassword,
-        role: data.role,
-      },
-    });
-    return this.toSafeUser(user);
-  }
-
   async me(user: JwtUser) {
     const dbUser = await this.prisma.user.findUnique({
       where: { id: user.userId },
@@ -72,14 +58,23 @@ export class AuthService {
     return this.toSafeUser(dbUser);
   }
 
-  async changePassword(user: JwtUser, currentPassword: string, newPassword: string) {
+  async changePassword(
+    user: JwtUser,
+    currentPassword: string,
+    newPassword: string,
+  ) {
     const dbUser = await this.prisma.user.findUnique({
       where: { id: user.userId },
     });
-    if (!dbUser || !dbUser.active) throw new UnauthorizedException('Usuário não encontrado');
+    if (!dbUser || !dbUser.active)
+      throw new UnauthorizedException('Usuário não encontrado');
 
-    const isPasswordValid = await bcrypt.compare(currentPassword, dbUser.password);
-    if (!isPasswordValid) throw new UnauthorizedException('Senha atual incorreta');
+    const isPasswordValid = await bcrypt.compare(
+      currentPassword,
+      dbUser.password,
+    );
+    if (!isPasswordValid)
+      throw new UnauthorizedException('Senha atual incorreta');
 
     const password = await bcrypt.hash(newPassword, 10);
     const updated = await this.prisma.user.update({

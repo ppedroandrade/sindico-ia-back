@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
-import { cn } from "@/lib/utils"
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   DollarSign,
@@ -19,16 +19,15 @@ import {
   UserCog,
   PanelLeftClose,
   PanelLeftOpen,
-  FileText,
   Wrench,
   Vote,
   ShieldCheck,
   BarChart3,
   History,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { useToast } from "@/hooks/use-toast"
-import { useEffect, useState } from "react"
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { useEffect, useState } from "react";
 
 const adminNavigation = [
   {
@@ -82,11 +81,6 @@ const adminNavigation = [
     icon: Bell,
   },
   {
-    name: "Documentos",
-    href: "/documentos",
-    icon: FileText,
-  },
-  {
     name: "Manutenção",
     href: "/manutencao",
     icon: Wrench,
@@ -121,7 +115,7 @@ const adminNavigation = [
     href: "/configuracoes",
     icon: Settings,
   },
-]
+];
 
 const moradorNavigation = [
   {
@@ -138,11 +132,6 @@ const moradorNavigation = [
     name: "Avisos",
     href: "/avisos",
     icon: Bell,
-  },
-  {
-    name: "Documentos",
-    href: "/documentos",
-    icon: FileText,
   },
   {
     name: "Ocorrências",
@@ -174,7 +163,7 @@ const moradorNavigation = [
     href: "/conta",
     icon: UserCog,
   },
-]
+];
 
 const limpezaNavigation = [
   {
@@ -187,47 +176,56 @@ const limpezaNavigation = [
     href: "/limpeza/historico",
     icon: Calendar,
   },
-]
+];
 
 interface DashboardSidebarProps {
-  isOpen?: boolean
-  onClose?: () => void
-  isCollapsed?: boolean
-  onToggleCollapse?: () => void
+  isOpen?: boolean;
+  onClose?: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-export function DashboardSidebar({ isOpen = false, onClose, isCollapsed = false, onToggleCollapse }: DashboardSidebarProps) {
-  const pathname = usePathname()
-  const router = useRouter()
-  const { toast } = useToast()
-  const [userRole, setUserRole] = useState<string>("")
-  const [userName, setUserName] = useState<string>("")
-  const [userEmail, setUserEmail] = useState<string>("")
-  const [userUnit, setUserUnit] = useState<string>("")
+export function DashboardSidebar({
+  isOpen = false,
+  onClose,
+  isCollapsed = false,
+  onToggleCollapse,
+}: DashboardSidebarProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { toast } = useToast();
+  const [userRole, setUserRole] = useState<string>("");
+  const [userName, setUserName] = useState<string>("");
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [userUnit, setUserUnit] = useState<string>("");
 
   useEffect(() => {
-    setUserRole(localStorage.getItem("userRole") || "")
-    setUserName(localStorage.getItem("userName") || "")
-    setUserEmail(localStorage.getItem("userEmail") || "")
-    setUserUnit(localStorage.getItem("userUnit") || "")
-  }, [])
+    setUserRole(localStorage.getItem("userRole") || "");
+    setUserName(localStorage.getItem("userName") || "");
+    setUserEmail(localStorage.getItem("userEmail") || "");
+    setUserUnit(localStorage.getItem("userUnit") || "");
+  }, []);
 
   const navigation =
-    userRole === "admin" ? adminNavigation : userRole === "limpeza" ? limpezaNavigation : moradorNavigation
+    userRole === "admin"
+      ? adminNavigation
+      : userRole === "limpeza"
+        ? limpezaNavigation
+        : moradorNavigation;
 
   const handleLogout = () => {
-    localStorage.removeItem("isAuthenticated")
-    localStorage.removeItem("token")
-    localStorage.removeItem("userEmail")
-    localStorage.removeItem("userRole")
-    localStorage.removeItem("userName")
-    localStorage.removeItem("userUnit")
+    localStorage.removeItem("isAuthenticated");
+    localStorage.removeItem("token");
+    localStorage.removeItem("userEmail");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("userName");
+    localStorage.removeItem("userUnit");
     toast({
       title: "Logout realizado",
       description: "Até logo!",
-    })
-    router.push("/login")
-  }
+    });
+    router.push("/login");
+  };
 
   const getUserInitials = () => {
     return userName
@@ -235,12 +233,18 @@ export function DashboardSidebar({ isOpen = false, onClose, isCollapsed = false,
       .map((n) => n[0])
       .join("")
       .toUpperCase()
-      .slice(0, 2)
-  }
+      .slice(0, 2);
+  };
 
   return (
     <>
-      {isOpen && <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={onClose} aria-hidden="true" />}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
 
       <aside
         className={cn(
@@ -251,15 +255,27 @@ export function DashboardSidebar({ isOpen = false, onClose, isCollapsed = false,
       >
         <div className="flex h-full flex-col">
           {/* Logo */}
-          <div className={cn("flex h-16 shrink-0 items-center gap-2.5 border-b border-sidebar-border px-4", !isCollapsed && "lg:px-5")}>
-            <Button variant="ghost" size="icon" className="lg:hidden -ml-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" onClick={onClose}>
+          <div
+            className={cn(
+              "flex h-16 shrink-0 items-center gap-2.5 border-b border-sidebar-border px-4",
+              !isCollapsed && "lg:px-5",
+            )}
+          >
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden -ml-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              onClick={onClose}
+            >
               <X className="h-5 w-5" />
             </Button>
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary">
               <Building2 className="h-5 w-5 text-sidebar-primary-foreground" />
             </div>
             <div className={cn("flex-1 min-w-0", isCollapsed && "hidden")}>
-              <h1 className="font-heading text-base font-semibold leading-tight text-sidebar-foreground truncate">Síndico de IA</h1>
+              <h1 className="font-heading text-base font-semibold leading-tight text-sidebar-foreground truncate">
+                Síndico de IA
+              </h1>
               <p className="text-xs text-sidebar-foreground/55 truncate">
                 {userRole === "admin"
                   ? "Automação Condominial"
@@ -277,7 +293,11 @@ export function DashboardSidebar({ isOpen = false, onClose, isCollapsed = false,
               )}
               onClick={onToggleCollapse}
             >
-              {isCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+              {isCollapsed ? (
+                <PanelLeftOpen className="h-5 w-5" />
+              ) : (
+                <PanelLeftClose className="h-5 w-5" />
+              )}
               <span className="sr-only">Alternar menu lateral</span>
             </Button>
           </div>
@@ -286,7 +306,7 @@ export function DashboardSidebar({ isOpen = false, onClose, isCollapsed = false,
           <div className="relative min-h-0 flex-1">
             <nav className="h-full space-y-1 overflow-y-auto p-4">
               {navigation.map((item) => {
-                const isActive = pathname === item.href
+                const isActive = pathname === item.href;
                 return (
                   <Link
                     key={item.name}
@@ -302,9 +322,11 @@ export function DashboardSidebar({ isOpen = false, onClose, isCollapsed = false,
                     title={isCollapsed ? item.name : undefined}
                   >
                     <item.icon className="h-5 w-5 flex-shrink-0" />
-                    <span className={cn("truncate", isCollapsed && "hidden")}>{item.name}</span>
+                    <span className={cn("truncate", isCollapsed && "hidden")}>
+                      {item.name}
+                    </span>
                   </Link>
-                )
+                );
               })}
             </nav>
             <div
@@ -315,12 +337,19 @@ export function DashboardSidebar({ isOpen = false, onClose, isCollapsed = false,
 
           {/* Footer */}
           <div className="shrink-0 border-t border-sidebar-border p-4 space-y-3">
-            <div className={cn("flex items-center gap-3 rounded-lg bg-sidebar-accent p-3", isCollapsed && "justify-center p-2")}>
+            <div
+              className={cn(
+                "flex items-center gap-3 rounded-lg bg-sidebar-accent p-3",
+                isCollapsed && "justify-center p-2",
+              )}
+            >
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground flex-shrink-0">
                 {getUserInitials()}
               </div>
               <div className={cn("flex-1 min-w-0", isCollapsed && "hidden")}>
-                <p className="text-sm font-medium text-sidebar-foreground truncate">{userName}</p>
+                <p className="text-sm font-medium text-sidebar-foreground truncate">
+                  {userName}
+                </p>
                 <p className="text-xs text-sidebar-foreground/55 truncate">
                   {userUnit ? `${userUnit} • ${userEmail}` : userEmail}
                 </p>
@@ -343,5 +372,5 @@ export function DashboardSidebar({ isOpen = false, onClose, isCollapsed = false,
         </div>
       </aside>
     </>
-  )
+  );
 }
