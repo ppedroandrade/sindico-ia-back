@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Building2, Home } from "lucide-react"
+import { setPostLoginRedirect } from "@/lib/auth-redirect"
 
 export default function NotFound() {
   const router = useRouter()
@@ -14,8 +15,8 @@ export default function NotFound() {
   useEffect(() => {
     const token = localStorage.getItem("token")
     if (!token) {
-      const redirect = pathname && pathname !== "/" ? `?redirect=${encodeURIComponent(pathname)}` : ""
-      router.replace(`/login${redirect}`)
+      if (pathname && pathname !== "/") setPostLoginRedirect(pathname)
+      router.replace("/login")
       return
     }
     setIsAuthenticated(true)

@@ -27,6 +27,11 @@ enum ReservationStatus {
   completed
 }
 
+enum CleaningStatus {
+  pending
+  cleaned
+}
+
 enum AnnouncementType {
   info
   warning
@@ -99,6 +104,7 @@ model User {
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @default(now()) @updatedAt
   reservations        Reservation[]
+  cleanedReservations Reservation[]       @relation("ReservationCleanedBy")
   payments            Payment[]
   announcements       Announcement[]      @relation("AnnouncementAuthor")
   occurrences         Occurrence[]        @relation("OccurrenceReporter")
@@ -218,20 +224,26 @@ model CommonArea {
 }
 
 model Reservation {
-  id           String            @id @default(uuid())
-  userId       String
-  areaId       String
-  date         DateTime
-  startTime    DateTime
-  endTime      DateTime
-  totalPrice   Float
-  guests       Int               @default(1)
-  status       ReservationStatus @default(pending)
-  observations String?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @default(now()) @updatedAt
-  user         User              @relation(fields: [userId], references: [id])
-  area         CommonArea        @relation(fields: [areaId], references: [id])
+  id             String            @id @default(uuid())
+  userId         String
+  areaId         String
+  date           DateTime
+  startTime      DateTime
+  endTime        DateTime
+  totalPrice     Float
+  guests         Int               @default(1)
+  status         ReservationStatus @default(pending)
+  observations   String?
+  cleaningStatus CleaningStatus    @default(pending)
+  cleanedAt      DateTime?
+  cleanedById    String?
+  itemsVerified  Boolean           @default(false)
+  cleaningNotes  String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @default(now()) @updatedAt
+  user           User              @relation(fields: [userId], references: [id])
+  area           CommonArea        @relation(fields: [areaId], references: [id])
+  cleanedBy      User?             @relation("ReservationCleanedBy", fields: [cleanedById], references: [id])
 
   @@index([userId])
   @@index([areaId, startTime, endTime])

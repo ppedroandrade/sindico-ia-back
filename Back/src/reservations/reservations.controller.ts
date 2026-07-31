@@ -58,6 +58,16 @@ export class ReservationsController {
     return this.reservationsService.updateStatus(id, dto.status);
   }
 
+  @Roles('admin', 'limpeza')
+  @Patch(':id/cleaning')
+  markCleaned(
+    @Param('id') id: string,
+    @Body() dto: { itemsVerified: boolean; notes?: string },
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.reservationsService.markCleaned(id, dto, req.user);
+  }
+
   @Roles('admin')
   @Delete(':id')
   remove(@Param('id') id: string) {

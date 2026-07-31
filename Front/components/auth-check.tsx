@@ -6,15 +6,7 @@ import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { apiRequest, type User } from "@/lib/api"
 import { publishCurrentUser } from "@/components/auth-context"
-import { isSafeRedirectPath } from "@/lib/utils"
-
-function loginUrlWithRedirect(pathname: string, reason?: "session_expired") {
-  const params = new URLSearchParams()
-  if (isSafeRedirectPath(pathname)) params.set("redirect", pathname)
-  if (reason) params.set("reason", reason)
-  const query = params.toString()
-  return query ? `/login?${query}` : "/login"
-}
+import { setPostLoginRedirect } from "@/lib/auth-redirect"
 
 export function AuthCheck({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -32,7 +24,8 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
 
       const token = localStorage.getItem("token")
       if (!token) {
-        router.push(loginUrlWithRedirect(pathname))
+        setPostLoginRedirect(pathname)
+        router.push("/login")
         return
       }
 
@@ -62,7 +55,8 @@ export function AuthCheck({ children }: { children: React.ReactNode }) {
         }
       } catch {
         localStorage.clear()
-        router.push(loginUrlWithRedirect(pathname, "session_expired"))
+        setPostLoginRedirect(pathname, "session_expired")
+        router.push("/login")
       } finally {
         if (isMounted) setIsChecking(false)
       }

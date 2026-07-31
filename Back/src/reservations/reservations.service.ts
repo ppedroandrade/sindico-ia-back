@@ -19,8 +19,16 @@ export class ReservationsService {
     private readonly notifications: NotificationsService,
   ) {}
 
+  private readonly safeUserSelect = {
+    id: true,
+    name: true,
+    email: true,
+    role: true,
+    apartment: true,
+  };
+
   private readonly reservationInclude = {
-    area: true,
+    area: { include: { items: true } },
     user: {
       select: {
         id: true,
@@ -35,6 +43,7 @@ export class ReservationsService {
         updatedAt: true,
       },
     },
+    cleanedBy: { select: this.safeUserSelect },
   };
 
   private toDate(date: string) {
@@ -245,6 +254,41 @@ export class ReservationsService {
       include: this.reservationInclude,
     });
     await this.notifyStatus(updated);
+    return updated;
+  }
+
+  async markCleaned(
+    id: string,
+    data: { itemsVerified: boolean; notes?: string },
+    user: JwtUser,
+  ) {
+    const reservation = await this.findOne(id);
+    if (reservation.status === ReservationStatus.cancelled) {
+      throw new BadRequestException('Reserva cancelada não precisa de limpeza');
+    }
+
+    const updated = await this.prisma.reservation.update({
+      where: { id },
+      data: {
+        cleaningStatus: 'cleaned',
+        cleanedAt: new Date(),
+        cleanedById: user.userId,
+        itemsVerified: data.itemsVerified,
+        cleaningNotes: data.notes,
+      },
+      include: this.reservationInclude,
+    });
+
+    await this.notifications.createForAdmins({
+      type: data.itemsVerified ? 'success' : 'warning',
+      title: 'Área limpa e conferida',
+      description: `${updated.area.name} foi limpa por ${updated.cleanedBy?.name ?? 'equipe de limpeza'}${
+        data.itemsVerified ? '' : ' — itens não conferidos, verifique.'
+      }`,
+      module: 'Reservas',
+      link: '/reservas',
+    });
+
     return updated;
   }
 

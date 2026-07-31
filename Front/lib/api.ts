@@ -97,6 +97,8 @@ export type ReservationStatus =
   | "cancelled"
   | "completed";
 
+export type CleaningStatus = "pending" | "cleaned";
+
 export type Reservation = {
   id: string;
   userId: string;
@@ -112,6 +114,12 @@ export type Reservation = {
   updatedAt?: string;
   user: User;
   area: CommonArea;
+  cleaningStatus: CleaningStatus;
+  cleanedAt?: string | null;
+  cleanedById?: string | null;
+  cleanedBy?: Pick<User, "id" | "name" | "email" | "role" | "apartment"> | null;
+  itemsVerified: boolean;
+  cleaningNotes?: string | null;
 };
 
 export type AnnouncementType = "info" | "warning" | "urgent" | "event";

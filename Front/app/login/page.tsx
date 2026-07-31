@@ -2,15 +2,16 @@
 
 import type React from "react"
 
-import { Suspense, useEffect, useRef, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Building2, Lock, Mail } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Building2, Eye, EyeOff, Lock, Mail, TriangleAlert } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { ApiError, apiRequest, type User, type UserRole } from "@/lib/api"
-import { isSafeRedirectPath } from "@/lib/utils"
+import { consumePostLoginRedirect } from "@/lib/auth-redirect"
 
 const roleRedirect: Record<UserRole, string> = {
   admin: "/",
@@ -18,33 +19,38 @@ const roleRedirect: Record<UserRole, string> = {
   limpeza: "/limpeza",
 }
 
-function LoginForm() {
+type FormAlert = {
+  title: string
+  description: string
+  variant: "destructive" | "warning"
+}
+
+export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [alert, setAlert] = useState<FormAlert | null>(null)
   const router = useRouter()
-  const searchParams = useSearchParams()
   const { toast } = useToast()
-  const hasShownExpiredToast = useRef(false)
 
   useEffect(() => {
-    if (hasShownExpiredToast.current) return
-    if (searchParams.get("reason") === "session_expired") {
-      hasShownExpiredToast.current = true
-      toast({
+    const { reason } = consumePostLoginRedirect()
+    if (reason === "session_expired") {
+      setAlert({
         title: "Sessão expirada",
         description: "Sua sessão expirou. Faça login novamente para continuar.",
         variant: "warning",
       })
     }
-  }, [searchParams, toast])
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     if (isLoading) return
 
     if (!email.trim() || !password) {
-      toast({
+      setAlert({
         title: "Preencha os campos",
         description: "Informe seu e-mail e sua senha para continuar.",
         variant: "warning",
@@ -52,6 +58,7 @@ function LoginForm() {
       return
     }
 
+    setAlert(null)
     setIsLoading(true)
 
     try {
@@ -85,12 +92,8 @@ function LoginForm() {
         variant: "success",
       })
 
-      const redirectParam = searchParams.get("redirect")
-      const destination = isSafeRedirectPath(redirectParam)
-        ? redirectParam
-        : user?.role
-          ? roleRedirect[user.role]
-          : "/"
+      const { path: redirectPath } = consumePostLoginRedirect()
+      const destination = redirectPath ?? (user?.role ? roleRedirect[user.role] : "/")
       router.push(destination)
     } catch (error: unknown) {
       let title = "Não foi possível entrar"
@@ -123,11 +126,7 @@ function LoginForm() {
         description = "Ocorreu um erro inesperado. Tente novamente."
       }
 
-      toast({
-        title,
-        description,
-        variant,
-      })
+      setAlert({ title, description, variant })
     } finally {
       setIsLoading(false)
     }
@@ -187,7 +186,7 @@ function LoginForm() {
       </div>
 
       <div className="flex items-center justify-center bg-background p-6 sm:p-10">
-        <div className="w-full max-w-sm space-y-8">
+        <div className="w-full max-w-sm space-y-6">
           <div className="space-y-2 lg:hidden">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
               <Building2 className="h-6 w-6 text-primary" />
@@ -201,6 +200,14 @@ function LoginForm() {
             <p className="text-sm text-muted-foreground">Use o email ou usuário cadastrado pelo síndico.</p>
           </div>
 
+          {alert && (
+            <Alert variant={alert.variant}>
+              <TriangleAlert />
+              <AlertTitle>{alert.title}</AlertTitle>
+              <AlertDescription>{alert.description}</AlertDescription>
+            </Alert>
+          )}
+
           <form onSubmit={handleLogin} noValidate className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -213,6 +220,7 @@ function LoginForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-9"
+                  aria-invalid={!!alert}
                 />
               </div>
             </div>
@@ -223,12 +231,22 @@ function LoginForm() {
                 <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 pr-9"
+                  aria-invalid={!!alert}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((current) => !current)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
 
@@ -247,13 +265,5 @@ function LoginForm() {
         </div>
       </div>
     </div>
-  )
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense fallback={null}>
-      <LoginForm />
-    </Suspense>
   )
 }

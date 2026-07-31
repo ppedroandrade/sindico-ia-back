@@ -132,12 +132,25 @@ export function ReservationsList({ reservations, areas, onConfirm, onCancel, onE
                           </span>
                         </div>
                       </div>
-                      <Badge
-                        variant="outline"
-                        className={`${statusConfig[reservation.status as keyof typeof statusConfig].className} text-xs`}
-                      >
-                        {statusConfig[reservation.status as keyof typeof statusConfig].label}
-                      </Badge>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge
+                          variant="outline"
+                          className={`${statusConfig[reservation.status as keyof typeof statusConfig].className} text-xs`}
+                        >
+                          {statusConfig[reservation.status as keyof typeof statusConfig].label}
+                        </Badge>
+                        {new Date(reservation.endTime).getTime() < Date.now() && (
+                          reservation.cleaningStatus === "cleaned" ? (
+                            <Badge variant={reservation.itemsVerified ? "success" : "warning"} className="text-xs">
+                              {reservation.itemsVerified ? "Limpa e conferida" : "Limpa — verificar itens"}
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-xs">
+                              Aguardando limpeza
+                            </Badge>
+                          )
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-4 text-xs md:text-sm text-muted-foreground">
