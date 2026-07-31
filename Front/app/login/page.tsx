@@ -2,14 +2,15 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useEffect, useRef, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Building2, Lock, Mail } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { ApiError, apiRequest, type User, type UserRole } from "@/lib/api"
+import { isSafeRedirectPath } from "@/lib/utils"
 
 const roleRedirect: Record<UserRole, string> = {
   admin: "/",
@@ -17,15 +18,30 @@ const roleRedirect: Record<UserRole, string> = {
   limpeza: "/limpeza",
 }
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
+  const hasShownExpiredToast = useRef(false)
+
+  useEffect(() => {
+    if (hasShownExpiredToast.current) return
+    if (searchParams.get("reason") === "session_expired") {
+      hasShownExpiredToast.current = true
+      toast({
+        title: "Sessão expirada",
+        description: "Sua sessão expirou. Faça login novamente para continuar.",
+        variant: "warning",
+      })
+    }
+  }, [searchParams, toast])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isLoading) return
     setIsLoading(true)
 
     try {
@@ -56,30 +72,45 @@ export default function LoginPage() {
       toast({
         title: "Login realizado com sucesso!",
         description: "Bem-vindo ao Síndico de IA",
+        variant: "success",
       })
 
-      if (user?.role) {
-        router.push(roleRedirect[user.role])
-      } else {
-        router.push("/")
-      }
+      const redirectParam = searchParams.get("redirect")
+      const destination = isSafeRedirectPath(redirectParam)
+        ? redirectParam
+        : user?.role
+          ? roleRedirect[user.role]
+          : "/"
+      router.push(destination)
     } catch (error: unknown) {
-      let title = "Erro ao fazer login"
-      let description = "Não foi possível autenticar"
-      let variant: "default" | "destructive" = "destructive"
+      let title = "Não foi possível entrar"
+      let description = "Não foi possível autenticar. Tente novamente."
+      let variant: "destructive" | "warning" = "destructive"
 
       if (error instanceof ApiError) {
         if (error.status === 0) {
-          description = "Sistema indisponível no momento. Verifique sua conexão ou tente mais tarde."
-        } else if (error.status === 401 || error.status === 403) {
-          description = "Credenciais inválidas. Verifique seu email e senha."
+          title = "Falha de conexão"
+          description = "Não foi possível conectar ao servidor. Verifique sua internet e tente novamente."
+        } else if (error.status === 401) {
+          title = "Credenciais inválidas"
+          description = "E-mail ou senha incorretos. Verifique os dados e tente novamente."
+        } else if (error.status === 403) {
+          title = "Conta desativada"
+          description = error.message || "Esta conta foi desativada. Entre em contato com o síndico."
+          variant = "warning"
+        } else if (error.status === 429) {
+          title = "Muitas tentativas"
+          description = "Você tentou entrar várias vezes seguidas. Aguarde um instante antes de tentar novamente."
+          variant = "warning"
+        } else if (error.status >= 500) {
+          title = "Erro interno do servidor"
+          description = "Algo deu errado do nosso lado. Tente novamente em instantes."
         } else {
           description = error.message
         }
-      } else if (error instanceof Error) {
-        description = error.message
       } else {
-        description = "Ocorreu um erro inesperado."
+        title = "Erro inesperado"
+        description = "Ocorreu um erro inesperado. Tente novamente."
       }
 
       toast({
@@ -208,5 +239,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   )
 }

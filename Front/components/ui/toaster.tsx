@@ -5,20 +5,25 @@ import {
   Toast,
   ToastClose,
   ToastDescription,
+  ToastIcon,
+  ToastProgress,
   ToastProvider,
   ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast";
 
+const TOAST_DURATION = 5000;
+
 export function Toaster() {
   const { toasts } = useToast();
 
   return (
-    <ToastProvider duration={5000}>
-      {toasts.map(function ({ id, title, description, action, ...props }) {
+    <ToastProvider duration={TOAST_DURATION}>
+      {toasts.map(function ({ id, title, description, action, variant, ...props }) {
         return (
-          <Toast key={id} {...props}>
-            <div className="grid gap-1">
+          <Toast key={id} variant={variant} {...props}>
+            <ToastIcon variant={variant} />
+            <div className="flex-1 min-w-0">
               {title && <ToastTitle>{title}</ToastTitle>}
               {description && (
                 <ToastDescription>{description}</ToastDescription>
@@ -26,6 +31,7 @@ export function Toaster() {
             </div>
             {action}
             <ToastClose />
+            <ToastProgress variant={variant} duration={TOAST_DURATION} />
           </Toast>
         );
       })}

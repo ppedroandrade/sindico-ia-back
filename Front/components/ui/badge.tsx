@@ -20,7 +20,7 @@ const badgeVariants = cva(
         warning:
           'border-transparent bg-warning text-warning-foreground [a&]:hover:bg-warning/90',
         outline:
-          'text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground',
+          'text-foreground [a&]:hover:bg-muted [a&]:hover:text-foreground',
       },
     },
     defaultVariants: {

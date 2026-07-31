@@ -148,3 +148,22 @@
     @apply shadow-sm;
   }
 }
+
+@keyframes toast-progress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+.toast-progress-bar {
+  animation: toast-progress linear forwards;
+  animation-duration: var(--toast-duration, 5000ms);
+  transform-origin: left;
+}
+
+.group:hover .toast-progress-bar {
+  animation-play-state: paused;
+}

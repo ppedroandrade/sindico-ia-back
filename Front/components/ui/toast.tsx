@@ -3,7 +3,7 @@
 import * as React from "react";
 import * as ToastPrimitives from "@radix-ui/react-toast";
 import { cva, type VariantProps } from "class-variance-authority";
-import { X } from "lucide-react";
+import { AlertCircle, AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -16,7 +16,7 @@ const ToastViewport = React.forwardRef<
   <ToastPrimitives.Viewport
     ref={ref}
     className={cn(
-      "fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]",
+      "fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse gap-2 p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]",
       className,
     )}
     {...props}
@@ -25,16 +25,14 @@ const ToastViewport = React.forwardRef<
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName;
 
 const toastVariants = cva(
-  "group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-md border p-6 pr-8 shadow-lg transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full",
+  "group pointer-events-auto relative flex w-full items-start gap-3 overflow-hidden rounded-lg border p-4 pr-8 shadow-lg transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full",
   {
     variants: {
       variant: {
-        default: "border bg-background text-foreground",
-        info: "border-primary/35 bg-background text-foreground shadow-primary/10",
-        success:
-          "border-success/40 bg-background text-foreground shadow-success/10",
-        warning:
-          "border-warning/50 bg-background text-foreground shadow-warning/10",
+        default: "border-border bg-card text-card-foreground",
+        info: "border-primary/30 bg-card text-card-foreground",
+        success: "border-success/30 bg-card text-card-foreground",
+        warning: "border-warning/40 bg-card text-card-foreground",
         destructive:
           "destructive group border-destructive bg-destructive text-destructive-foreground",
       },
@@ -44,6 +42,58 @@ const toastVariants = cva(
     },
   },
 );
+
+const toastIconVariants = cva("mt-0.5 size-5 shrink-0", {
+  variants: {
+    variant: {
+      default: "text-foreground",
+      info: "text-primary",
+      success: "text-success",
+      warning: "text-warning",
+      destructive: "text-destructive-foreground",
+    },
+  },
+  defaultVariants: {
+    variant: "default",
+  },
+});
+
+const toastProgressVariants = cva("toast-progress-bar absolute inset-x-0 bottom-0 h-1", {
+  variants: {
+    variant: {
+      default: "bg-foreground/20",
+      info: "bg-primary",
+      success: "bg-success",
+      warning: "bg-warning",
+      destructive: "bg-destructive-foreground/40",
+    },
+  },
+  defaultVariants: {
+    variant: "default",
+  },
+});
+
+const toastIcons: Record<NonNullable<VariantProps<typeof toastVariants>["variant"]>, typeof Info> = {
+  default: Info,
+  info: Info,
+  success: CheckCircle2,
+  warning: AlertTriangle,
+  destructive: AlertCircle,
+};
+
+function ToastIcon({ variant }: VariantProps<typeof toastVariants>) {
+  const Icon = toastIcons[variant ?? "default"];
+  return <Icon className={cn(toastIconVariants({ variant }))} aria-hidden="true" />;
+}
+
+function ToastProgress({ variant, duration }: VariantProps<typeof toastVariants> & { duration?: number }) {
+  return (
+    <div
+      className={cn(toastProgressVariants({ variant }))}
+      style={duration ? ({ "--toast-duration": `${duration}ms` } as React.CSSProperties) : undefined}
+    />
+  );
+}
 
 const Toast = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Root>,
@@ -99,7 +149,7 @@ const ToastTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitives.Title
     ref={ref}
-    className={cn("text-sm font-semibold", className)}
+    className={cn("text-sm font-semibold leading-tight", className)}
     {...props}
   />
 ));
@@ -111,7 +161,7 @@ const ToastDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitives.Description
     ref={ref}
-    className={cn("text-sm opacity-90", className)}
+    className={cn("text-sm leading-snug opacity-80 mt-0.5", className)}
     {...props}
   />
 ));
@@ -127,6 +177,8 @@ export {
   ToastProvider,
   ToastViewport,
   Toast,
+  ToastIcon,
+  ToastProgress,
   ToastTitle,
   ToastDescription,
   ToastClose,

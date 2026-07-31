@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -15,9 +15,12 @@ export class AuthService {
   ) {}
 
   async validateUser(login: string, password: string): Promise<User> {
+    // Não filtra por `active` aqui: precisamos comparar a senha antes de decidir
+    // qual erro mostrar. Só revelamos "conta desativada" depois de confirmar que a
+    // senha está correta, então isso nunca ajuda alguém a descobrir se um email
+    // existe ou está cadastrado (só quem já prova saber a senha vê essa mensagem).
     const user = await this.prisma.user.findFirst({
       where: {
-        active: true,
         OR: [{ email: login }, { username: login }],
       },
     });
@@ -31,6 +34,10 @@ export class AuthService {
 
     if (!user || !isPasswordValid) {
       throw new UnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
+    }
+
+    if (!user.active) {
+      throw new ForbiddenException('Esta conta foi desativada. Entre em contato com o síndico.');
     }
 
     return user;
