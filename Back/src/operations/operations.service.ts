@@ -42,6 +42,18 @@ export class OperationsService {
     if (user.role !== 'admin') throw new ForbiddenException('Acesso negado');
   }
 
+  /** Finds the unit a non-admin user belongs to, either as owner or as a listed resident. */
+  private async findOwnUnitId(userId: string): Promise<string | undefined> {
+    const ownedUnit = await this.prisma.unit.findFirst({ where: { ownerId: userId } });
+    if (ownedUnit) return ownedUnit.id;
+
+    const residency = await this.prisma.unitResident.findFirst({
+      where: { userId },
+      orderBy: { isPrimary: 'desc' },
+    });
+    return residency?.unitId;
+  }
+
   /**
    * Restringe os campos que um usuário não-admin pode enviar na criação de um recurso,
    * evitando que campos administrativos (status, custo, vínculo com outro usuário etc.)
@@ -229,6 +241,7 @@ export class OperationsService {
           ],
           user,
         );
+        const ownUnitId = user.role === 'admin' ? undefined : await this.findOwnUnitId(user.userId);
         const visitor = await this.createAndAudit(user, 'visitor', () =>
           this.prisma.visitorAccess.create({
             data: {
@@ -237,6 +250,8 @@ export class OperationsService {
                 user.role === 'admin' && data.residentId
                   ? String(data.residentId)
                   : user.userId,
+              unitId:
+                user.role === 'admin' && data.unitId ? String(data.unitId) : ownUnitId,
               expectedAt: data.expectedAt
                 ? new Date(String(data.expectedAt))
                 : undefined,

@@ -57,6 +57,7 @@ export default function OcorrenciasPage() {
   const [comments, setComments] = useState<Record<string, any[]>>({})
   const [commentText, setCommentText] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const { toast } = useToast()
 
   const loadOccurrences = async (showLoading = false) => {
@@ -86,8 +87,18 @@ export default function OcorrenciasPage() {
     }
   }, [occurrences])
 
+  const validate = () => {
+    const errors: Record<string, string> = {}
+    if (form.title.trim().length < 3) errors.title = "O título deve ter pelo menos 3 caracteres."
+    if (!form.category.trim()) errors.category = "Informe a categoria."
+    if (form.description.trim().length < 5) errors.description = "Descreva o problema com pelo menos 5 caracteres."
+    setFieldErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault()
+    if (!validate()) return
     setIsSaving(true)
     try {
       const created = (await apiRequest("/occurrences", {
@@ -96,7 +107,8 @@ export default function OcorrenciasPage() {
       })) as Occurrence
       setOccurrences((current) => [created, ...current])
       setForm({ title: "", category: "", priority: "medium", description: "" })
-      toast({ title: "Ocorrência registrada" })
+      setFieldErrors({})
+      toast({ title: "Ocorrência registrada", variant: "success" })
     } catch (err) {
       toast({
         title: "Erro ao registrar ocorrência",
@@ -149,7 +161,7 @@ export default function OcorrenciasPage() {
         </div>
 
         <Card className="p-4 md:p-6">
-          <form onSubmit={handleCreate} className="space-y-4">
+          <form onSubmit={handleCreate} noValidate className="space-y-4">
             <div>
               <h2 className="text-lg font-semibold">Nova ocorrência</h2>
               <p className="text-sm text-muted-foreground">Descreva o problema para registrar no histórico</p>
@@ -157,11 +169,21 @@ export default function OcorrenciasPage() {
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
                 <Label>Título</Label>
-                <Input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} required />
+                <Input
+                  value={form.title}
+                  onChange={(event) => setForm({ ...form, title: event.target.value })}
+                  aria-invalid={!!fieldErrors.title}
+                />
+                {fieldErrors.title && <p className="text-xs text-destructive">{fieldErrors.title}</p>}
               </div>
               <div className="space-y-2">
                 <Label>Categoria</Label>
-                <Input value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} required />
+                <Input
+                  value={form.category}
+                  onChange={(event) => setForm({ ...form, category: event.target.value })}
+                  aria-invalid={!!fieldErrors.category}
+                />
+                {fieldErrors.category && <p className="text-xs text-destructive">{fieldErrors.category}</p>}
               </div>
               <div className="space-y-2">
                 <Label>Prioridade</Label>
@@ -178,7 +200,12 @@ export default function OcorrenciasPage() {
             </div>
             <div className="space-y-2">
               <Label>Descrição</Label>
-              <Textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} required />
+              <Textarea
+                value={form.description}
+                onChange={(event) => setForm({ ...form, description: event.target.value })}
+                aria-invalid={!!fieldErrors.description}
+              />
+              {fieldErrors.description && <p className="text-xs text-destructive">{fieldErrors.description}</p>}
             </div>
             <div className="flex justify-end">
               <Button type="submit" disabled={isSaving}>{isSaving ? "Registrando..." : "Registrar ocorrência"}</Button>

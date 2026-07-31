@@ -21,8 +21,8 @@ export default function ManutencaoPage() {
             { name: "title", label: "Título", required: true },
             { name: "category", label: "Categoria", required: true },
             { name: "location", label: "Local" },
-            { name: "vendor", label: "Prestador" },
-            { name: "estimatedCost", label: "Custo estimado", type: "number" },
+            { name: "vendor", label: "Prestador", adminOnly: true },
+            { name: "estimatedCost", label: "Custo estimado", type: "number", adminOnly: true },
             { name: "scheduledAt", label: "Agendamento", type: "date" },
             { name: "description", label: "Descrição", type: "textarea", required: true },
           ]}

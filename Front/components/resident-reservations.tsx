@@ -9,11 +9,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DatePicker } from "@/components/ui/date-picker"
+import { TimeSelect } from "@/components/ui/time-select"
 import { Calendar, Clock, Users, MapPin, Plus, X, CheckCircle2, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useState, useEffect } from "react"
 import { ApiError, type CommonArea, type Reservation } from "@/lib/api"
 import { formatCurrency } from "@/lib/format"
+import { combineLocalDateAndTimeToISO, localDateOnlyToISO, toLocalDateInputValue } from "@/lib/date"
 
 interface ResidentReservationsProps {
   reservations: Reservation[]
@@ -41,6 +44,8 @@ export function ResidentReservations({ reservations, areas, onNewReservation, on
   const [startTime, setStartTime] = useState("")
   const [endTime, setEndTime] = useState("")
   const [guests, setGuests] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
     setUserName(localStorage.getItem("userName") || "")
@@ -52,21 +57,38 @@ export function ResidentReservations({ reservations, areas, onNewReservation, on
   const pendingReservations = myReservations.filter((r) => r.status === "pending")
   const confirmedReservations = myReservations.filter((r) => r.status === "confirmed")
 
+  const validate = () => {
+    const errors: Record<string, string> = {}
+    if (!selectedArea) errors.area = "Selecione uma área comum."
+    if (!date) errors.date = "Selecione a data da reserva."
+    if (!startTime) errors.startTime = "Selecione o horário de início."
+    if (!endTime) errors.endTime = "Selecione o horário de término."
+    if (startTime && endTime && endTime <= startTime) errors.endTime = "O horário final deve ser depois do inicial."
+    const guestsNumber = Number.parseInt(guests, 10)
+    if (!guests || Number.isNaN(guestsNumber) || guestsNumber < 1) errors.guests = "Informe quantos convidados (mínimo 1)."
+    setFieldErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
   const handleSubmitReservation = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isSubmitting) return
+    if (!validate()) return
 
+    setIsSubmitting(true)
     try {
       await onNewReservation({
         areaId: selectedArea,
-        date: `${date}T00:00:00.000Z`,
-        startTime: `${date}T${startTime}:00.000Z`,
-        endTime: `${date}T${endTime}:00.000Z`,
+        date: localDateOnlyToISO(date),
+        startTime: combineLocalDateAndTimeToISO(date, startTime),
+        endTime: combineLocalDateAndTimeToISO(date, endTime),
         guests: Number.parseInt(guests),
       })
 
       toast({
         title: "Solicitação enviada!",
         description: "Sua reserva está aguardando aprovação do síndico.",
+        variant: "success",
       })
 
       setSelectedArea("")
@@ -74,6 +96,7 @@ export function ResidentReservations({ reservations, areas, onNewReservation, on
       setStartTime("")
       setEndTime("")
       setGuests("")
+      setFieldErrors({})
       setIsDialogOpen(false)
     } catch (err) {
       toast({
@@ -81,6 +104,8 @@ export function ResidentReservations({ reservations, areas, onNewReservation, on
         description: err instanceof ApiError ? err.message : "Tente novamente.",
         variant: "destructive",
       })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -137,11 +162,11 @@ export function ResidentReservations({ reservations, areas, onNewReservation, on
               <DialogTitle>Solicitar Reserva</DialogTitle>
             </DialogHeader>
 
-            <form onSubmit={handleSubmitReservation} className="space-y-4">
+            <form onSubmit={handleSubmitReservation} noValidate className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="area">Área Comum</Label>
-                <Select value={selectedArea} onValueChange={setSelectedArea} required>
-                  <SelectTrigger>
+                <Select value={selectedArea} onValueChange={setSelectedArea}>
+                  <SelectTrigger id="area" aria-invalid={!!fieldErrors.area}>
                     <SelectValue placeholder="Selecione uma área" />
                   </SelectTrigger>
                   <SelectContent>
@@ -154,40 +179,31 @@ export function ResidentReservations({ reservations, areas, onNewReservation, on
                     ))}
                   </SelectContent>
                 </Select>
+                {fieldErrors.area && <p className="text-xs text-destructive">{fieldErrors.area}</p>}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="date">Data</Label>
-                <Input
+                <DatePicker
                   id="date"
-                  type="date"
                   value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  min={new Date().toISOString().split("T")[0]}
-                  required
+                  onChange={setDate}
+                  minDate={toLocalDateInputValue(new Date().toISOString())}
+                  className={fieldErrors.date ? "border-destructive" : undefined}
                 />
+                {fieldErrors.date && <p className="text-xs text-destructive">{fieldErrors.date}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="startTime">Horário Início</Label>
-                  <Input
-                    id="startTime"
-                    type="time"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                    required
-                  />
+                  <TimeSelect id="startTime" value={startTime} onChange={setStartTime} />
+                  {fieldErrors.startTime && <p className="text-xs text-destructive">{fieldErrors.startTime}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="endTime">Horário Fim</Label>
-                  <Input
-                    id="endTime"
-                    type="time"
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                    required
-                  />
+                  <TimeSelect id="endTime" value={endTime} onChange={setEndTime} />
+                  {fieldErrors.endTime && <p className="text-xs text-destructive">{fieldErrors.endTime}</p>}
                 </div>
               </div>
 
@@ -200,15 +216,18 @@ export function ResidentReservations({ reservations, areas, onNewReservation, on
                   onChange={(e) => setGuests(e.target.value)}
                   min="1"
                   placeholder="Ex: 30"
-                  required
+                  aria-invalid={!!fieldErrors.guests}
                 />
+                {fieldErrors.guests && <p className="text-xs text-destructive">{fieldErrors.guests}</p>}
               </div>
 
               <div className="flex justify-end gap-2 pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit">Solicitar Reserva</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Enviando..." : "Solicitar Reserva"}
+                </Button>
               </div>
             </form>
           </DialogContent>

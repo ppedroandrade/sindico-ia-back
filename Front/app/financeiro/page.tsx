@@ -10,10 +10,12 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { DatePicker } from "@/components/ui/date-picker"
 import { ApiError, apiRequest, type Payment, type User } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { useCurrentUser } from "@/components/auth-context"
 import { formatCurrency } from "@/lib/format"
+import { localDateOnlyToISO } from "@/lib/date"
 import { CreditCard, DollarSign, Plus } from "lucide-react"
 
 type PaymentForm = {
@@ -43,6 +45,8 @@ export default function FinanceiroPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [batchFieldErrors, setBatchFieldErrors] = useState<Record<string, string>>({})
   const { toast } = useToast()
 
   const loadData = async () => {
@@ -79,16 +83,19 @@ export default function FinanceiroPage() {
     )
   }, [payments])
 
+  const validatePayment = () => {
+    const errors: Record<string, string> = {}
+    if (!form.userId) errors.userId = "Selecione um morador."
+    if (!form.amount || Number(form.amount) <= 0) errors.amount = "Informe um valor maior que zero."
+    if (!form.dueDate) errors.dueDate = "Selecione a data de vencimento."
+    if (!form.type.trim()) errors.type = "Informe o tipo da cobrança."
+    setFieldErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
   const handleCreatePayment = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (!form.userId) {
-      toast({
-        title: "Selecione um morador",
-        description: "A cobrança precisa estar vinculada a uma conta real.",
-        variant: "destructive",
-      })
-      return
-    }
+    if (!validatePayment()) return
 
     setIsSaving(true)
     try {
@@ -97,14 +104,15 @@ export default function FinanceiroPage() {
         body: JSON.stringify({
           userId: form.userId,
           amount: Number(form.amount),
-          dueDate: `${form.dueDate}T00:00:00.000Z`,
+          dueDate: localDateOnlyToISO(form.dueDate),
           type: form.type,
           referenceMonth: form.referenceMonth || undefined,
         }),
       })) as Payment
       setPayments((current) => [created, ...current])
       setForm(initialForm)
-      toast({ title: "Cobrança criada" })
+      setFieldErrors({})
+      toast({ title: "Cobrança criada", variant: "success" })
     } catch (err) {
       toast({
         title: "Erro ao criar cobrança",
@@ -121,22 +129,33 @@ export default function FinanceiroPage() {
     setPayments((current) => current.map((payment) => (payment.id === paymentId ? updated : payment)))
   }
 
+  const validateBatch = () => {
+    const errors: Record<string, string> = {}
+    if (!batchForm.amount || Number(batchForm.amount) <= 0) errors.amount = "Informe um valor maior que zero."
+    if (!batchForm.dueDate) errors.dueDate = "Selecione a data de vencimento."
+    if (!batchForm.type.trim()) errors.type = "Informe o tipo da cobrança."
+    setBatchFieldErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
   const generateBatch = async (event: React.FormEvent) => {
     event.preventDefault()
+    if (!validateBatch()) return
     setIsSaving(true)
     try {
       const created = (await apiRequest("/payments/batch", {
         method: "POST",
         body: JSON.stringify({
           amount: Number(batchForm.amount),
-          dueDate: `${batchForm.dueDate}T00:00:00.000Z`,
+          dueDate: localDateOnlyToISO(batchForm.dueDate),
           type: batchForm.type,
           referenceMonth: batchForm.referenceMonth || undefined,
         }),
       })) as Payment[]
       setPayments((current) => [...created, ...current])
       setBatchForm({ amount: "", dueDate: "", type: "condominio", referenceMonth: "" })
-      toast({ title: "Cobranças geradas", description: `${created.length} cobranças criadas.` })
+      setBatchFieldErrors({})
+      toast({ title: "Cobranças geradas", description: `${created.length} cobranças criadas.`, variant: "success" })
       loadData()
     } catch (err) {
       toast({
@@ -183,7 +202,7 @@ export default function FinanceiroPage() {
         {userRole === "admin" && (
           <div className="grid gap-6 lg:grid-cols-2">
           <Card className="p-4 md:p-6">
-            <form onSubmit={handleCreatePayment} className="space-y-4">
+            <form onSubmit={handleCreatePayment} noValidate className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                   <Plus className="h-5 w-5 text-primary" />
@@ -197,8 +216,8 @@ export default function FinanceiroPage() {
               <div className="grid gap-4 md:grid-cols-5">
                 <div className="space-y-2 md:col-span-2">
                   <Label>Morador</Label>
-                  <Select value={form.userId} onValueChange={(userId) => setForm({ ...form, userId })} required>
-                    <SelectTrigger>
+                  <Select value={form.userId} onValueChange={(userId) => setForm({ ...form, userId })}>
+                    <SelectTrigger aria-invalid={!!fieldErrors.userId}>
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
@@ -209,18 +228,33 @@ export default function FinanceiroPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {fieldErrors.userId && <p className="text-xs text-destructive">{fieldErrors.userId}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label>Valor</Label>
-                  <Input type="number" min="0" step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} required />
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.amount}
+                    onChange={(event) => setForm({ ...form, amount: event.target.value })}
+                    aria-invalid={!!fieldErrors.amount}
+                  />
+                  {fieldErrors.amount && <p className="text-xs text-destructive">{fieldErrors.amount}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label>Vencimento</Label>
-                  <Input type="date" value={form.dueDate} onChange={(event) => setForm({ ...form, dueDate: event.target.value })} required />
+                  <DatePicker value={form.dueDate} onChange={(value) => setForm({ ...form, dueDate: value })} />
+                  {fieldErrors.dueDate && <p className="text-xs text-destructive">{fieldErrors.dueDate}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label>Tipo</Label>
-                  <Input value={form.type} onChange={(event) => setForm({ ...form, type: event.target.value })} required />
+                  <Input
+                    value={form.type}
+                    onChange={(event) => setForm({ ...form, type: event.target.value })}
+                    aria-invalid={!!fieldErrors.type}
+                  />
+                  {fieldErrors.type && <p className="text-xs text-destructive">{fieldErrors.type}</p>}
                 </div>
               </div>
 
@@ -232,7 +266,7 @@ export default function FinanceiroPage() {
             </form>
           </Card>
           <Card className="p-4 md:p-6">
-            <form onSubmit={generateBatch} className="space-y-4">
+            <form onSubmit={generateBatch} noValidate className="space-y-4">
               <div>
                 <h2 className="text-lg font-semibold">Geração em lote</h2>
                 <p className="text-sm text-muted-foreground">Crie cobrança para todos os moradores ativos.</p>
@@ -240,15 +274,29 @@ export default function FinanceiroPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Valor</Label>
-                  <Input type="number" min="0" step="0.01" value={batchForm.amount} onChange={(event) => setBatchForm({ ...batchForm, amount: event.target.value })} required />
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={batchForm.amount}
+                    onChange={(event) => setBatchForm({ ...batchForm, amount: event.target.value })}
+                    aria-invalid={!!batchFieldErrors.amount}
+                  />
+                  {batchFieldErrors.amount && <p className="text-xs text-destructive">{batchFieldErrors.amount}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label>Vencimento</Label>
-                  <Input type="date" value={batchForm.dueDate} onChange={(event) => setBatchForm({ ...batchForm, dueDate: event.target.value })} required />
+                  <DatePicker value={batchForm.dueDate} onChange={(value) => setBatchForm({ ...batchForm, dueDate: value })} />
+                  {batchFieldErrors.dueDate && <p className="text-xs text-destructive">{batchFieldErrors.dueDate}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label>Tipo</Label>
-                  <Input value={batchForm.type} onChange={(event) => setBatchForm({ ...batchForm, type: event.target.value })} required />
+                  <Input
+                    value={batchForm.type}
+                    onChange={(event) => setBatchForm({ ...batchForm, type: event.target.value })}
+                    aria-invalid={!!batchFieldErrors.type}
+                  />
+                  {batchFieldErrors.type && <p className="text-xs text-destructive">{batchFieldErrors.type}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label>Referência</Label>

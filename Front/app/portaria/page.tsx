@@ -26,8 +26,8 @@ export default function PortariaPage() {
               description="Autorizações e registro de entrada"
               endpoint="/operations/visitors"
               fields={[
-                { name: "unitId", label: "Unidade", source: "units" },
-                { name: "residentId", label: "Morador responsável", source: "users" },
+                { name: "unitId", label: "Unidade", source: "units", adminOnly: true },
+                { name: "residentId", label: "Morador responsável", source: "users", adminOnly: true },
                 { name: "visitorName", label: "Nome", required: true },
                 { name: "document", label: "Documento" },
                 { name: "phone", label: "Telefone" },
@@ -46,6 +46,7 @@ export default function PortariaPage() {
               actions={[
                 {
                   label: "Entrada",
+                  adminOnly: true,
                   onClick: async (item, refresh) => {
                     await apiRequest(`/operations/visitors/${item.id}/status`, {
                       method: "PATCH",
@@ -56,6 +57,7 @@ export default function PortariaPage() {
                 },
                 {
                   label: "Saída",
+                  adminOnly: true,
                   onClick: async (item, refresh) => {
                     await apiRequest(`/operations/visitors/${item.id}/status`, {
                       method: "PATCH",

@@ -7,11 +7,23 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DatePicker } from "@/components/ui/date-picker"
 import { Plus, Edit, Trash2, Bell, Calendar, AlertTriangle, Info } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { ApiError, apiRequest, type Announcement, type AnnouncementType } from "@/lib/api"
+import { localDateOnlyToISO, toLocalDateInputValue } from "@/lib/date"
 
 export function AdminAnnouncements() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
@@ -23,8 +35,10 @@ export function AdminAnnouncements() {
     title: "",
     content: "",
     type: "info" as AnnouncementType,
-    publishAt: new Date().toISOString().split("T")[0],
+    publishAt: toLocalDateInputValue(new Date().toISOString()),
   })
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
   const { toast } = useToast()
 
   const loadAnnouncements = async () => {
@@ -45,54 +59,77 @@ export function AdminAnnouncements() {
 
   const resetForm = () => {
     setEditingAnnouncement(null)
+    setFieldErrors({})
     setFormData({
       title: "",
       content: "",
       type: "info",
-      publishAt: new Date().toISOString().split("T")[0],
+      publishAt: toLocalDateInputValue(new Date().toISOString()),
     })
   }
 
   const handleSubmit = async () => {
-    if (!formData.title || !formData.content) {
-      toast({ title: "Erro", description: "Preencha título e conteúdo", variant: "destructive" })
-      return
+    const errors: Record<string, string> = {}
+    if (!formData.title.trim()) errors.title = "Informe o título do aviso."
+    if (!formData.content.trim()) errors.content = "Informe o conteúdo do aviso."
+    if (!formData.publishAt) errors.publishAt = "Selecione a data de publicação."
+    setFieldErrors(errors)
+    if (Object.keys(errors).length > 0) return
+
+    try {
+      const saved = (await apiRequest(
+        editingAnnouncement ? `/announcements/${editingAnnouncement.id}` : "/announcements",
+        {
+          method: editingAnnouncement ? "PATCH" : "POST",
+          body: JSON.stringify({
+            ...formData,
+            publishAt: localDateOnlyToISO(formData.publishAt),
+          }),
+        },
+      )) as Announcement
+
+      setAnnouncements((prev) =>
+        editingAnnouncement ? prev.map((ann) => (ann.id === saved.id ? saved : ann)) : [saved, ...prev],
+      )
+      setIsDialogOpen(false)
+      resetForm()
+      toast({ title: editingAnnouncement ? "Aviso atualizado" : "Aviso publicado", variant: "success" })
+    } catch (err) {
+      toast({
+        title: "Erro ao salvar aviso",
+        description: err instanceof ApiError ? err.message : "Tente novamente.",
+        variant: "destructive",
+      })
     }
-
-    const saved = (await apiRequest(
-      editingAnnouncement ? `/announcements/${editingAnnouncement.id}` : "/announcements",
-      {
-        method: editingAnnouncement ? "PATCH" : "POST",
-        body: JSON.stringify({
-          ...formData,
-          publishAt: `${formData.publishAt}T00:00:00.000Z`,
-        }),
-      },
-    )) as Announcement
-
-    setAnnouncements((prev) =>
-      editingAnnouncement ? prev.map((ann) => (ann.id === saved.id ? saved : ann)) : [saved, ...prev],
-    )
-    setIsDialogOpen(false)
-    resetForm()
-    toast({ title: editingAnnouncement ? "Aviso atualizado" : "Aviso publicado" })
   }
 
   const handleEdit = (announcement: Announcement) => {
     setEditingAnnouncement(announcement)
+    setFieldErrors({})
     setFormData({
       title: announcement.title,
       content: announcement.content,
       type: announcement.type,
-      publishAt: new Date(announcement.publishAt).toISOString().split("T")[0],
+      publishAt: toLocalDateInputValue(announcement.publishAt),
     })
     setIsDialogOpen(true)
   }
 
-  const handleDelete = async (id: string) => {
-    await apiRequest(`/announcements/${id}`, { method: "DELETE" })
-    setAnnouncements((prev) => prev.filter((ann) => ann.id !== id))
-    toast({ title: "Aviso excluído" })
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return
+    try {
+      await apiRequest(`/announcements/${deleteTargetId}`, { method: "DELETE" })
+      setAnnouncements((prev) => prev.filter((ann) => ann.id !== deleteTargetId))
+      toast({ title: "Aviso excluído", variant: "success" })
+    } catch (err) {
+      toast({
+        title: "Não foi possível excluir",
+        description: err instanceof ApiError ? err.message : "Tente novamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setDeleteTargetId(null)
+    }
   }
 
   const getTypeIcon = (type: AnnouncementType) => {
@@ -140,7 +177,13 @@ export function AdminAnnouncements() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="title">Título</Label>
-                <Input id="title" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  aria-invalid={!!fieldErrors.title}
+                />
+                {fieldErrors.title && <p className="text-xs text-destructive">{fieldErrors.title}</p>}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -159,17 +202,24 @@ export function AdminAnnouncements() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="publishAt">Data</Label>
-                  <Input
+                  <DatePicker
                     id="publishAt"
-                    type="date"
                     value={formData.publishAt}
-                    onChange={(e) => setFormData({ ...formData, publishAt: e.target.value })}
+                    onChange={(value) => setFormData({ ...formData, publishAt: value })}
                   />
+                  {fieldErrors.publishAt && <p className="text-xs text-destructive">{fieldErrors.publishAt}</p>}
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="content">Conteúdo</Label>
-                <Textarea id="content" value={formData.content} onChange={(e) => setFormData({ ...formData, content: e.target.value })} rows={6} />
+                <Textarea
+                  id="content"
+                  value={formData.content}
+                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                  rows={6}
+                  aria-invalid={!!fieldErrors.content}
+                />
+                {fieldErrors.content && <p className="text-xs text-destructive">{fieldErrors.content}</p>}
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
@@ -212,7 +262,7 @@ export function AdminAnnouncements() {
                     <Button variant="ghost" size="icon" onClick={() => handleEdit(announcement)}>
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(announcement.id)}>
+                    <Button variant="ghost" size="icon" onClick={() => setDeleteTargetId(announcement.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -226,6 +276,29 @@ export function AdminAnnouncements() {
             </Card>
           ))}
       </div>
+
+      <AlertDialog open={!!deleteTargetId} onOpenChange={(open) => !open && setDeleteTargetId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir aviso</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este aviso? Essa ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault()
+                confirmDelete()
+              }}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

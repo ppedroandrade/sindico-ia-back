@@ -42,6 +42,16 @@ function LoginForm() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     if (isLoading) return
+
+    if (!email.trim() || !password) {
+      toast({
+        title: "Preencha os campos",
+        description: "Informe seu e-mail e sua senha para continuar.",
+        variant: "warning",
+      })
+      return
+    }
+
     setIsLoading(true)
 
     try {
@@ -191,7 +201,7 @@ function LoginForm() {
             <p className="text-sm text-muted-foreground">Use o email ou usuário cadastrado pelo síndico.</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} noValidate className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
@@ -203,7 +213,6 @@ function LoginForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-9"
-                  required
                 />
               </div>
             </div>
@@ -219,7 +228,6 @@ function LoginForm() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-9"
-                  required
                 />
               </div>
             </div>

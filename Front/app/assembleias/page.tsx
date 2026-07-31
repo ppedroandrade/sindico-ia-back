@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { ApiError, apiRequest } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { useCurrentUser } from "@/components/auth-context"
+import { toLocalDateTimeInputValue } from "@/lib/date"
 
 const statusOptions = ["draft", "scheduled", "open", "closed", "archived"]
 
@@ -23,6 +24,7 @@ export default function AssembleiasPage() {
   const [form, setForm] = useState({ title: "", scheduledAt: "", location: "", status: "scheduled", description: "", agenda: "" })
   const [voteForm, setVoteForm] = useState<Record<string, string>>({})
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const { toast } = useToast()
 
   const loadAssemblies = async () => {
@@ -33,8 +35,17 @@ export default function AssembleiasPage() {
     loadAssemblies().catch(() => undefined)
   }, [])
 
+  const validate = () => {
+    const errors: Record<string, string> = {}
+    if (!form.title.trim()) errors.title = "Informe o título da assembleia."
+    if (!form.scheduledAt) errors.scheduledAt = "Selecione a data e o horário."
+    setFieldErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
   const saveAssembly = async (event: React.FormEvent) => {
     event.preventDefault()
+    if (!validate()) return
     try {
       const payload = { ...form, scheduledAt: new Date(form.scheduledAt).toISOString() }
       const saved = await apiRequest(editingId ? `/operations/assemblies/${editingId}` : "/operations/assemblies", {
@@ -44,7 +55,8 @@ export default function AssembleiasPage() {
       setAssemblies((current) => editingId ? current.map((item) => item.id === editingId ? saved : item) : [saved, ...current])
       setEditingId(null)
       setForm({ title: "", scheduledAt: "", location: "", status: "scheduled", description: "", agenda: "" })
-      toast({ title: "Assembleia salva" })
+      setFieldErrors({})
+      toast({ title: "Assembleia salva", variant: "success" })
     } catch (err) {
       toast({ title: "Erro ao salvar", description: err instanceof ApiError ? err.message : "Tente novamente.", variant: "destructive" })
     }
@@ -54,12 +66,13 @@ export default function AssembleiasPage() {
     setEditingId(assembly.id)
     setForm({
       title: assembly.title ?? "",
-      scheduledAt: assembly.scheduledAt ? new Date(assembly.scheduledAt).toISOString().slice(0, 16) : "",
+      scheduledAt: assembly.scheduledAt ? toLocalDateTimeInputValue(assembly.scheduledAt) : "",
       location: assembly.location ?? "",
       status: assembly.status ?? "scheduled",
       description: assembly.description ?? "",
       agenda: assembly.agenda ?? "",
     })
+    setFieldErrors({})
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
@@ -83,16 +96,27 @@ export default function AssembleiasPage() {
 
         {role === "admin" && (
           <Card className="p-5 md:p-6">
-            <form onSubmit={saveAssembly} className="space-y-4">
+            <form onSubmit={saveAssembly} noValidate className="space-y-4">
               <h2 className="text-lg font-semibold">{editingId ? "Editar assembleia" : "Nova assembleia"}</h2>
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
                   <Label>Título</Label>
-                  <Input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} required />
+                  <Input
+                    value={form.title}
+                    onChange={(event) => setForm({ ...form, title: event.target.value })}
+                    aria-invalid={!!fieldErrors.title}
+                  />
+                  {fieldErrors.title && <p className="text-xs text-destructive">{fieldErrors.title}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label>Data e horário</Label>
-                  <Input type="datetime-local" value={form.scheduledAt} onChange={(event) => setForm({ ...form, scheduledAt: event.target.value })} required />
+                  <Input
+                    type="datetime-local"
+                    value={form.scheduledAt}
+                    onChange={(event) => setForm({ ...form, scheduledAt: event.target.value })}
+                    aria-invalid={!!fieldErrors.scheduledAt}
+                  />
+                  {fieldErrors.scheduledAt && <p className="text-xs text-destructive">{fieldErrors.scheduledAt}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label>Status</Label>

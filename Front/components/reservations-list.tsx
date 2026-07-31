@@ -16,8 +16,16 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DatePicker } from "@/components/ui/date-picker"
+import { TimeSelect } from "@/components/ui/time-select"
 import { useToast } from "@/hooks/use-toast"
 import type { CommonArea, Reservation } from "@/lib/api"
+import {
+  combineLocalDateAndTimeToISO,
+  localDateOnlyToISO,
+  toLocalDateInputValue,
+  toLocalTimeInputValue,
+} from "@/lib/date"
 
 type ReservationsListProps = {
   reservations: Reservation[]
@@ -33,9 +41,6 @@ export function ReservationsList({ reservations, areas, onConfirm, onCancel, onE
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null)
   const [editForm, setEditForm] = useState<Partial<Reservation>>({})
 
-  const toDateInput = (value: string) => new Date(value).toISOString().split("T")[0]
-  const toTimeInput = (value: string) => new Date(value).toISOString().slice(11, 16)
-  const combineDateTime = (date: string, time: string) => `${date}T${time}:00.000Z`
   const formatTimeRange = (reservation: Reservation) =>
     `${new Date(reservation.startTime).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} - ${new Date(
       reservation.endTime,
@@ -235,11 +240,10 @@ export function ReservationsList({ reservations, areas, onConfirm, onCancel, onE
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="date">Data</Label>
-                <Input
+                <DatePicker
                   id="date"
-                  type="date"
-                  value={editForm.date ? toDateInput(editForm.date) : ""}
-                  onChange={(e) => setEditForm({ ...editForm, date: `${e.target.value}T00:00:00.000Z` })}
+                  value={editForm.date ? toLocalDateInputValue(editForm.date) : ""}
+                  onChange={(value) => setEditForm({ ...editForm, date: localDateOnlyToISO(value) })}
                 />
               </div>
 
@@ -248,40 +252,37 @@ export function ReservationsList({ reservations, areas, onConfirm, onCancel, onE
                 <Input
                   id="guests"
                   type="number"
+                  min="1"
                   value={editForm.guests || ""}
                   onChange={(e) => setEditForm({ ...editForm, guests: Number.parseInt(e.target.value) || 0 })}
                 />
               </div>
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="startTime">Início</Label>
-              <Input
-                id="startTime"
-                type="time"
-                value={editForm.startTime ? toTimeInput(editForm.startTime) : ""}
-                onChange={(e) =>
-                  setEditForm({
-                    ...editForm,
-                    startTime: combineDateTime(editForm.date ? toDateInput(editForm.date) : toDateInput(new Date().toISOString()), e.target.value),
-                  })
-                }
-              />
-            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="startTime">Início</Label>
+                <TimeSelect
+                  id="startTime"
+                  value={editForm.startTime ? toLocalTimeInputValue(editForm.startTime) : ""}
+                  onChange={(value) => {
+                    const dateStr = editForm.date ? toLocalDateInputValue(editForm.date) : toLocalDateInputValue(new Date().toISOString())
+                    setEditForm({ ...editForm, startTime: combineLocalDateAndTimeToISO(dateStr, value) })
+                  }}
+                />
+              </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="endTime">Fim</Label>
-              <Input
-                id="endTime"
-                type="time"
-                value={editForm.endTime ? toTimeInput(editForm.endTime) : ""}
-                onChange={(e) =>
-                  setEditForm({
-                    ...editForm,
-                    endTime: combineDateTime(editForm.date ? toDateInput(editForm.date) : toDateInput(new Date().toISOString()), e.target.value),
-                  })
-                }
-              />
+              <div className="grid gap-2">
+                <Label htmlFor="endTime">Fim</Label>
+                <TimeSelect
+                  id="endTime"
+                  value={editForm.endTime ? toLocalTimeInputValue(editForm.endTime) : ""}
+                  onChange={(value) => {
+                    const dateStr = editForm.date ? toLocalDateInputValue(editForm.date) : toLocalDateInputValue(new Date().toISOString())
+                    setEditForm({ ...editForm, endTime: combineLocalDateAndTimeToISO(dateStr, value) })
+                  }}
+                />
+              </div>
             </div>
 
             <div className="grid gap-2">

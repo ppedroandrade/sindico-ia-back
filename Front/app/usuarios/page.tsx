@@ -9,6 +9,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { ApiError, apiRequest, type User, type UserRole } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { Plus, Trash2, UserPlus } from "lucide-react"
@@ -39,7 +49,9 @@ export default function UsuariosPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const { toast } = useToast()
 
   const loadUsers = async () => {
@@ -82,8 +94,20 @@ export default function UsuariosPage() {
     }))
   }
 
+  const validate = () => {
+    const errors: Record<string, string> = {}
+    if (!formData.name.trim()) errors.name = "Informe o nome completo."
+    if (!/^\d{11}$/.test(formData.cpf.replace(/\D/g, ""))) errors.cpf = "Informe um CPF válido com 11 dígitos."
+    if (!formData.email.trim() || !formData.email.includes("@")) errors.email = "Informe um e-mail válido."
+    if (formData.password.length < 6) errors.password = "A senha deve ter pelo menos 6 caracteres."
+    if (!formData.apartment.trim()) errors.apartment = "Informe o número do apartamento."
+    setFieldErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
+    if (!validate()) return
     setIsSaving(true)
 
     try {
@@ -105,9 +129,11 @@ export default function UsuariosPage() {
 
       setUsers((current) => [created, ...current])
       setFormData(initialFormData)
+      setFieldErrors({})
       toast({
         title: "Morador criado",
         description: "A conta foi criada com sucesso.",
+        variant: "success",
       })
     } catch (err) {
       toast({
@@ -142,8 +168,9 @@ export default function UsuariosPage() {
     }
   }
 
-  const deleteUser = async (userId: string) => {
-    if (!confirm("Tem certeza que deseja excluir este usuário? Essa ação não pode ser desfeita.")) return
+  const confirmDeleteUser = async () => {
+    if (!deleteTargetId) return
+    const userId = deleteTargetId
     setDeletingId(userId)
     try {
       await apiRequest(`/users/${userId}`, { method: "DELETE" })
@@ -151,6 +178,7 @@ export default function UsuariosPage() {
       toast({
         title: "Usuário excluído",
         description: "A conta foi removida com sucesso.",
+        variant: "success",
       })
     } catch (err) {
       toast({
@@ -163,6 +191,7 @@ export default function UsuariosPage() {
       })
     } finally {
       setDeletingId(null)
+      setDeleteTargetId(null)
     }
   }
 
@@ -175,7 +204,7 @@ export default function UsuariosPage() {
         </div>
 
         <Card className="p-4 md:p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} noValidate className="space-y-6">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                 <UserPlus className="h-5 w-5 text-primary" />
@@ -193,8 +222,9 @@ export default function UsuariosPage() {
                   id="name"
                   value={formData.name}
                   onChange={(event) => setFormData({ ...formData, name: event.target.value })}
-                  required
+                  aria-invalid={!!fieldErrors.name}
                 />
+                {fieldErrors.name && <p className="text-xs text-destructive">{fieldErrors.name}</p>}
               </div>
 
               <div className="space-y-2">
@@ -205,8 +235,9 @@ export default function UsuariosPage() {
                   maxLength={14}
                   value={formData.cpf}
                   onChange={(event) => setFormData({ ...formData, cpf: event.target.value })}
-                  required
+                  aria-invalid={!!fieldErrors.cpf}
                 />
+                {fieldErrors.cpf && <p className="text-xs text-destructive">{fieldErrors.cpf}</p>}
               </div>
 
               <div className="space-y-2">
@@ -216,8 +247,9 @@ export default function UsuariosPage() {
                   type="email"
                   value={formData.email}
                   onChange={(event) => setFormData({ ...formData, email: event.target.value })}
-                  required
+                  aria-invalid={!!fieldErrors.email}
                 />
+                {fieldErrors.email && <p className="text-xs text-destructive">{fieldErrors.email}</p>}
               </div>
 
               <div className="space-y-2">
@@ -234,11 +266,11 @@ export default function UsuariosPage() {
                 <Input
                   id="password"
                   type="password"
-                  minLength={6}
                   value={formData.password}
                   onChange={(event) => setFormData({ ...formData, password: event.target.value })}
-                  required
+                  aria-invalid={!!fieldErrors.password}
                 />
+                {fieldErrors.password && <p className="text-xs text-destructive">{fieldErrors.password}</p>}
               </div>
 
               <div className="space-y-2">
@@ -247,8 +279,9 @@ export default function UsuariosPage() {
                   id="apartment"
                   value={formData.apartment}
                   onChange={(event) => setFormData({ ...formData, apartment: event.target.value })}
-                  required
+                  aria-invalid={!!fieldErrors.apartment}
                 />
+                {fieldErrors.apartment && <p className="text-xs text-destructive">{fieldErrors.apartment}</p>}
               </div>
             </div>
 
@@ -357,7 +390,7 @@ export default function UsuariosPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => deleteUser(resident.id)}
+                          onClick={() => setDeleteTargetId(resident.id)}
                           disabled={deletingId === resident.id}
                         >
                           {deletingId === resident.id ? "Excluindo..." : "Excluir"}
@@ -371,6 +404,30 @@ export default function UsuariosPage() {
           )}
         </Card>
       </div>
+
+      <AlertDialog open={!!deleteTargetId} onOpenChange={(open) => !open && setDeleteTargetId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir usuário</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este usuário? Essa ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!deletingId}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault()
+                confirmDeleteUser()
+              }}
+              disabled={!!deletingId}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              {deletingId ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   )
 }

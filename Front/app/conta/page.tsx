@@ -18,6 +18,7 @@ export default function ContaPage() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const { toast } = useToast()
 
   useEffect(() => {
@@ -32,16 +33,18 @@ export default function ContaPage() {
     loadAccount()
   }, [])
 
+  const validate = () => {
+    const errors: Record<string, string> = {}
+    if (!currentPassword) errors.currentPassword = "Informe sua senha atual."
+    if (newPassword.length < 6) errors.newPassword = "A nova senha deve ter pelo menos 6 caracteres."
+    if (confirmPassword !== newPassword) errors.confirmPassword = "A confirmação precisa ser igual à nova senha."
+    setFieldErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
   const changePassword = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (newPassword !== confirmPassword) {
-      toast({
-        title: "Senhas diferentes",
-        description: "A confirmação precisa ser igual à nova senha.",
-        variant: "destructive",
-      })
-      return
-    }
+    if (!validate()) return
 
     setIsSaving(true)
     try {
@@ -52,7 +55,8 @@ export default function ContaPage() {
       setCurrentPassword("")
       setNewPassword("")
       setConfirmPassword("")
-      toast({ title: "Senha alterada" })
+      setFieldErrors({})
+      toast({ title: "Senha alterada", variant: "success" })
     } catch (err) {
       toast({
         title: "Não foi possível alterar a senha",
@@ -114,18 +118,39 @@ export default function ContaPage() {
                 <p className="text-sm text-muted-foreground">Use uma senha com pelo menos 6 caracteres</p>
               </div>
 
-              <form onSubmit={changePassword} className="space-y-4">
+              <form onSubmit={changePassword} noValidate className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="current-password">Senha atual</Label>
-                  <Input id="current-password" type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} required />
+                  <Input
+                    id="current-password"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(event) => setCurrentPassword(event.target.value)}
+                    aria-invalid={!!fieldErrors.currentPassword}
+                  />
+                  {fieldErrors.currentPassword && <p className="text-xs text-destructive">{fieldErrors.currentPassword}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="new-password">Nova senha</Label>
-                  <Input id="new-password" type="password" minLength={6} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required />
+                  <Input
+                    id="new-password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
+                    aria-invalid={!!fieldErrors.newPassword}
+                  />
+                  {fieldErrors.newPassword && <p className="text-xs text-destructive">{fieldErrors.newPassword}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirm-password">Confirmar nova senha</Label>
-                  <Input id="confirm-password" type="password" minLength={6} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required />
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    aria-invalid={!!fieldErrors.confirmPassword}
+                  />
+                  {fieldErrors.confirmPassword && <p className="text-xs text-destructive">{fieldErrors.confirmPassword}</p>}
                 </div>
                 <div className="flex justify-end">
                   <Button type="submit" disabled={isSaving}>{isSaving ? "Alterando..." : "Alterar senha"}</Button>
