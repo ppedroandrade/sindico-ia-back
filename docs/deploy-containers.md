@@ -1,5 +1,10 @@
 # Deploy com Containers
 
+> **Documento histórico:** este guia descreve a antiga estrutura monorepo.
+> O frontend agora está em
+> [`sindico-ia-front`](https://github.com/ppedroandrade/sindico-ia-front) e o
+> `docker-compose.yml` deste repositório inicia somente backend e PostgreSQL.
+
 Este projeto possui uma stack com tres containers:
 
 - `front`: Next.js na porta `3000`

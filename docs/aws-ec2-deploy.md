@@ -1,5 +1,10 @@
 # Deploy em produção — AWS EC2 + Docker Compose
 
+> **Documento histórico:** este guia descreve a antiga estrutura monorepo.
+> O frontend agora está em
+> [`sindico-ia-front`](https://github.com/ppedroandrade/sindico-ia-front) e deve
+> ser implantado separadamente.
+
 Guia passo a passo para publicar a aplicação (front + back + Postgres) em uma única instância EC2,
 reaproveitando o `docker-compose.yml` já existente no repositório.
 

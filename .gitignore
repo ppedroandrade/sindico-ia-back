@@ -15,3 +15,6 @@ pnpm-debug.log*
 Back/prisma/seed.js
 Back/prisma/seed.js.map
 Back/prisma/seed.d.ts
+
+# Frontend lives in its own repository. The local checkout may remain here.
+/Front/
