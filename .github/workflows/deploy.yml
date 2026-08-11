@@ -30,11 +30,18 @@ jobs:
           docker build -t $IMAGE .
           docker push $IMAGE
 
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s' "${{ secrets.EC2_SSH_KEY }}" | sed 's/\\n/\n/g' | tr -d '\r' > ~/.ssh/ec2_key
+          chmod 600 ~/.ssh/ec2_key
+          grep -q "BEGIN .* PRIVATE KEY" ~/.ssh/ec2_key
+
       - uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
+          key_path: ~/.ssh/ec2_key
           script: |
             cd ~/sindico
             aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 086046210336.dkr.ecr.us-east-1.amazonaws.com
