@@ -1,0 +1,43 @@
+name: Deploy back
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REGISTRY: 086046210336.dkr.ecr.us-east-1.amazonaws.com
+  IMAGE: 086046210336.dkr.ecr.us-east-1.amazonaws.com/sindico-ia-back:latest
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build & push image
+        working-directory: Back
+        run: |
+          docker build -t $IMAGE .
+          docker push $IMAGE
+
+      - uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/sindico
+            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 086046210336.dkr.ecr.us-east-1.amazonaws.com
+            docker compose pull back
+            docker compose up -d back
+            docker image prune -f
