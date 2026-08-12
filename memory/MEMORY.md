@@ -1,0 +1,1 @@
+- [git commit style](feedback_git_commit_style.md) — nunca agregar Co-Authored-By de Claude en commits
