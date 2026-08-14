@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -37,7 +41,9 @@ export class AuthService {
     }
 
     if (!user.active) {
-      throw new ForbiddenException('Esta conta foi desativada. Entre em contato com o síndico.');
+      throw new ForbiddenException(
+        'Esta conta foi desativada. Entre em contato com o síndico.',
+      );
     }
 
     return user;

@@ -1,7 +1,14 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
-import { CreateAreaItemDto, CreateCommonAreaDto } from './dto/create-common-area.dto';
+import {
+  CreateAreaItemDto,
+  CreateCommonAreaDto,
+} from './dto/create-common-area.dto';
 import { UpdateCommonAreaDto } from './dto/update-common-area.dto';
 
 @Injectable()
@@ -50,6 +57,7 @@ export class CommonAreasService {
   async update(id: string, data: UpdateCommonAreaDto) {
     await this.findOne(id);
     const { items, ...areaData } = data;
+    void items;
     return this.prisma.commonArea.update({
       where: { id },
       data: areaData,
@@ -62,7 +70,10 @@ export class CommonAreasService {
     try {
       return await this.prisma.commonArea.delete({ where: { id } });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2003'
+      ) {
         throw new ConflictException(
           'Não é possível excluir esta área comum pois existem reservas vinculadas a ela.',
         );
@@ -83,7 +94,9 @@ export class CommonAreasService {
   }
 
   async removeItem(itemId: string) {
-    const item = await this.prisma.areaItem.findUnique({ where: { id: itemId } });
+    const item = await this.prisma.areaItem.findUnique({
+      where: { id: itemId },
+    });
     if (!item) throw new NotFoundException('Item não encontrado');
     return this.prisma.areaItem.delete({ where: { id: itemId } });
   }

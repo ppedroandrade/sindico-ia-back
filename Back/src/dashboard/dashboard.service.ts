@@ -30,7 +30,9 @@ export class DashboardService {
       this.prisma.user.count({ where: { role: 'morador', active: true } }),
       this.prisma.commonArea.count(),
       this.prisma.reservation.count({ where: { status: 'pending' } }),
-      this.prisma.occurrence.count({ where: { status: { in: ['open', 'in_progress'] } } }),
+      this.prisma.occurrence.count({
+        where: { status: { in: ['open', 'in_progress'] } },
+      }),
       this.prisma.announcement.count(),
       this.prisma.payment.aggregate({
         where: { status: 'paid' },

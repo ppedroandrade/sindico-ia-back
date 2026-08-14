@@ -42,7 +42,10 @@ async function bootstrap() {
         allowedOrigins.includes(origin) ||
         /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\]):\d+$/.test(origin);
 
-      callback(isAllowed ? null : new Error(`CORS blocked origin: ${origin}`), isAllowed);
+      callback(
+        isAllowed ? null : new Error(`CORS blocked origin: ${origin}`),
+        isAllowed,
+      );
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -53,4 +56,4 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`Backend running on port ${port}`);
 }
-bootstrap();
+void bootstrap();

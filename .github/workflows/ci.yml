@@ -1,0 +1,85 @@
+name: CI — Backend
+
+# Valida qualidade e testes a cada push/PR. O job falha (e bloqueia o merge)
+# se qualquer etapa abaixo retornar erro.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality:
+    name: Lint, tipos, testes e build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./Back
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: Back/package-lock.json
+
+      # `npm ci` falha se package.json e package-lock.json estiverem
+      # dessincronizados — validação de dependências já nesta etapa.
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Gerar Prisma Client
+        run: npx prisma generate
+
+      # Análise estática / qualidade de código
+      - name: Lint (ESLint + Prettier)
+        run: npm run lint:ci
+
+      # Análise estática de tipos — o build do Nest não checa tipos sozinho
+      - name: Verificação de tipos (TypeScript)
+        run: npm run typecheck
+
+      - name: Testes unitários com cobertura
+        run: npm run test:cov
+
+      - name: Publicar relatório de cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-backend
+          path: Back/coverage/
+          if-no-files-found: ignore
+
+      - name: Validação do build
+        run: npm run build
+
+  security:
+    name: Vulnerabilidades em dependências
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./Back
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: Back/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      # Falha se houver vulnerabilidade alta/crítica em dependência de
+      # produção. Dependências de desenvolvimento (jest, eslint) não entram
+      # na imagem final, por isso ficam fora desta checagem.
+      - name: Auditoria de dependências (produção)
+        run: npm audit --omit=dev --audit-level=high

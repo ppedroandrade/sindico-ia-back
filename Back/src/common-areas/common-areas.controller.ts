@@ -9,7 +9,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CommonAreasService } from './common-areas.service';
-import { CreateAreaItemDto, CreateCommonAreaDto } from './dto/create-common-area.dto';
+import {
+  CreateAreaItemDto,
+  CreateCommonAreaDto,
+} from './dto/create-common-area.dto';
 import { UpdateCommonAreaDto } from './dto/update-common-area.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';

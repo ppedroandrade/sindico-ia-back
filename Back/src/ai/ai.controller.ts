@@ -15,7 +15,10 @@ export class AiController {
   }
 
   @Post('messages')
-  createMessage(@Body() dto: CreateMessageDto, @Req() req: AuthenticatedRequest) {
+  createMessage(
+    @Body() dto: CreateMessageDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.aiService.createMessage(dto, req.user);
   }
 }

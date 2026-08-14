@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -20,7 +30,16 @@ export class PaymentsController {
 
   @Roles('admin')
   @Post('batch')
-  createBatch(@Body() dto: { userIds?: string[]; amount: number; dueDate: string; type: string; referenceMonth?: string }) {
+  createBatch(
+    @Body()
+    dto: {
+      userIds?: string[];
+      amount: number;
+      dueDate: string;
+      type: string;
+      referenceMonth?: string;
+    },
+  ) {
     return this.paymentsService.createBatch(dto);
   }
 
