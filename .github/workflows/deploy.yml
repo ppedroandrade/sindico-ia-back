@@ -41,3 +41,16 @@ jobs:
             docker compose pull back
             docker compose up -d back
             docker image prune -f
+
+            echo "Validando saúde do backend após o deploy..."
+            for i in $(seq 1 15); do
+              if curl -sf http://localhost:3002/ > /dev/null; then
+                echo "Backend respondendo — deploy validado."
+                exit 0
+              fi
+              sleep 2
+            done
+
+            echo "Backend não respondeu após o deploy. Logs recentes:"
+            docker compose logs --tail=50 back
+            exit 1
